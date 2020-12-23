@@ -12,6 +12,11 @@ proc-macro = true
 
 [dependencies]
 quote = "1"
-proc-macro2 = "1.0"
-syn = "1.0"
+proc-macro2 = "1"
+proc-macro-error = "1"
+itertools = "0.9"
+
+[dependencies.syn]
+version = "1"
+features = ["full"]
 
