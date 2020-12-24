@@ -1,5 +1,5 @@
 [package]
-name = "aquamarine-example-crate"
+name = "aquamarine-demo-crate"
 version = "0.0.1"
 authors = ["Mike Lubinets <git@mkl.dev>"]
 edition = "2018"
