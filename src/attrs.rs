@@ -2,7 +2,7 @@ use itertools::{Either, Itertools};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
-use std::{fmt, iter};
+use std::{cell::Cell, fmt, iter};
 use syn::{Attribute, Ident, MetaNameValue};
 
 #[derive(Clone, Debug, Default)]
@@ -88,26 +88,26 @@ impl Attrs {
         use syn::Lit::*;
         use syn::Meta::*;
 
-        let mut is_inside_diagram = false;
+        // Iterator state
+        let is_inside_diagram = Cell::new(false);
 
         let attrs = attrs.into_iter().flat_map(|attr| match attr.parse_meta() {
             Ok(NameValue(MetaNameValue {
                 lit: Str(s), path, ..
             })) if path.is_ident("doc") => {
                 let ident = path.get_ident().unwrap();
-                Either::Left(split_attr_body(ident, &s.value(), &mut is_inside_diagram))
+                Either::Left(split_attr_body(ident, &s.value(), &is_inside_diagram))
             }
             _ => Either::Right(iter::once(Attr::Forward(attr))),
         });
 
         let mut diagram_start_ident = None;
 
-        let attrs = attrs
-            .inspect(|attr| match attr { 
-                Attr::DiagramStart(ident) => diagram_start_ident = Some(ident.clone()),
-                Attr::DiagramEnd(_) => diagram_start_ident = None,
-                _ => ()
-            });
+        let attrs = attrs.inspect(|attr| match attr {
+            Attr::DiagramStart(ident) => diagram_start_ident = Some(ident.clone()),
+            Attr::DiagramEnd(_) => diagram_start_ident = None,
+            _ => (),
+        });
 
         self.0.extend(attrs);
 
@@ -117,11 +117,13 @@ impl Attrs {
     }
 }
 
-fn split_attr_body(ident: &Ident, input: &str, is_inside_diagram: &mut bool) -> impl Iterator<Item=Attr> {
+fn split_attr_body(
+    ident: &Ident,
+    input: &str,
+    is_inside: &Cell<bool>,
+) -> impl Iterator<Item = Attr> {
     const TICKS: &str = "```";
     const MMD: &str = "```mermaid";
-
-    let mut is_inside = *is_inside_diagram;
 
     let mut attrs = vec![];
     let mut stack: Vec<&str> = vec![];
@@ -129,25 +131,29 @@ fn split_attr_body(ident: &Ident, input: &str, is_inside_diagram: &mut bool) -> 
     let tokens = input.split(" ");
     for token in tokens {
         match token {
-            TICKS => if is_inside {
-                is_inside = false;
-            
-                // disallow empty lines inside the diagram
-                let s = stack.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
-                if !s.is_empty() {
-                    attrs.push(Attr::DiagramEntry(ident.clone(), s));
-                }
+            TICKS => {
+                if is_inside.get() {
+                    is_inside.set(false);
 
-                attrs.push(Attr::DiagramEnd(ident.clone()))
+                    // disallow empty lines inside the diagram
+                    let s = stack.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
+                    if !s.is_empty() {
+                        attrs.push(Attr::DiagramEntry(ident.clone(), s));
+                    }
+
+                    attrs.push(Attr::DiagramEnd(ident.clone()))
+                }
             }
-            MMD => if !is_inside {
-                is_inside = true;
+            MMD => {
+                if !is_inside.get() {
+                    is_inside.set(true);
 
-                if !stack.is_empty() {
-                    attrs.push(Attr::DocComment(ident.clone(), stack.drain(..).join(" ")));
+                    if !stack.is_empty() {
+                        attrs.push(Attr::DocComment(ident.clone(), stack.drain(..).join(" ")));
+                    }
+
+                    attrs.push(Attr::DiagramStart(ident.clone()));
                 }
-                
-                attrs.push(Attr::DiagramStart(ident.clone()));
             }
             other => stack.push(other),
         }
@@ -155,15 +161,13 @@ fn split_attr_body(ident: &Ident, input: &str, is_inside_diagram: &mut bool) -> 
 
     if !stack.is_empty() {
         let leftover = stack.drain(..).join(" ");
-        let attr = if is_inside {
+        let attr = if is_inside.get() {
             Attr::DiagramEntry(ident.clone(), leftover)
         } else {
             Attr::DocComment(ident.clone(), leftover)
         };
         attrs.push(attr);
     }
-
-    *is_inside_diagram = is_inside;
 
     attrs.into_iter()
 }

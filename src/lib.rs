@@ -12,7 +12,7 @@ mod parse;
 /// Aquamarine is a proc-macro that adds [Mermaid](https://mermaid-js.github.io/mermaid/#/) diagrams to rustdoc
 ///
 /// To inline a diagram into the documentation, use the `mermaid` snippet:
-/// 
+///
 /// ```rust
 /// # use aquamarine::aquamarine;
 /// #[aquamarine]
