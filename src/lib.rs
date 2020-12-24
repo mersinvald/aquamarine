@@ -9,10 +9,20 @@ use syn::{parse_macro_input, Attribute};
 mod attrs;
 mod parse;
 
-/// Example of user-defined [procedural macro attribute][1].
+/// Aquamarine is a proc-macro that adds [Mermaid](https://mermaid-js.github.io/mermaid/#/) diagrams to rustdoc
 ///
-/// [1]: https://doc.rust-lang.org/reference/procedural-macros.html#attribute-macros
-
+/// To inline a diagram into the documentation, use the `mermaid` snippet:
+/// 
+/// ```rust
+/// # use aquamarine::aquamarine;
+/// #[aquamarine]
+/// /// ```mermaid
+/// ///   -- here goes your mermaid diagram -- 
+/// /// ```
+/// struct Foo;
+/// ```
+///
+/// The demo crate [can be found here](https://docs.rs/aquamarine-demo-crate)
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn aquamarine(_args: TokenStream, input: TokenStream) -> TokenStream {
