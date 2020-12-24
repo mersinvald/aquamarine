@@ -1,11 +1,11 @@
+use itertools::{Either, Itertools};
 use proc_macro2::TokenStream;
-use proc_macro_error::{emit_call_site_warning, abort};
-use itertools::{Itertools, Either};
-use syn::{Attribute, MetaNameValue, Ident};
+use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
-use std::{iter, fmt};
+use std::{fmt, iter};
+use syn::{Attribute, Ident, MetaNameValue};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Attrs(Vec<Attr>);
 
 #[derive(Clone)]
@@ -25,11 +25,11 @@ pub enum Attr {
 impl fmt::Debug for Attr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Attr::Forward(..) => f.write_str("Forward"),
-            Attr::DocComment(..) => f.write_str("DocComment"),
-            Attr::DiagramStart(..) => f.write_str("DiagramStart"),
-            Attr::DiagramEntry(..) => f.write_str("DiagramEntry"),
-            Attr::DiagramEnd(..) => f.write_str("DiagramEnd"),
+            Attr::Forward(..) => f.write_str("Attr::Forward"),
+            Attr::DocComment(..) => f.write_str("Attr::DocComment"),
+            Attr::DiagramStart(..) => f.write_str("Attr::DiagramStart"),
+            Attr::DiagramEntry(..) => f.write_str("Attr::DiagramEntry"),
+            Attr::DiagramEnd(..) => f.write_str("Attr::DiagramEnd"),
         }
     }
 }
@@ -47,18 +47,20 @@ impl quote::ToTokens for Attrs {
                     let preabmle = iter::once(r#"<div class="mermaid">"#);
                     let postamble = iter::once("</div>");
 
-                    let diagram = attrs.by_ref().take_while(|x| !x.is_diagram_end())
+                    let diagram = attrs
+                        .by_ref()
+                        .take_while(|x| !x.is_diagram_end())
                         .map(Attr::expect_diagram_entry_text);
 
                     let body = preabmle.chain(diagram).chain(postamble).join("\n");
 
                     tokens.extend(generate_diagram_rustdoc(&body));
-                },
+                }
                 // If that happens, then the parsing stage is faulty: doc comments outside of
                 // in between Start and End tokens are to be emitted as Attr::Forward
                 Attr::DiagramEntry(_, body) => {
                     emit_call_site_warning!("encountered an unexpected attribute that's going to be ignored, this is a bug! ({})", body);
-                },
+                }
                 Attr::DiagramEnd(_) => (),
             }
         }
@@ -73,15 +75,25 @@ fn generate_diagram_rustdoc(body: &str) -> TokenStream {
     }
 }
 
-pub fn convert_attrs(attrs: Vec<Attribute>) -> syn::Result<Attrs> {
-    use syn::Lit::*;
-    use syn::Meta::*;
+impl From<Vec<Attribute>> for Attrs {
+    fn from(attrs: Vec<Attribute>) -> Self {
+        let mut out = Attrs::default();
+        out.push_attrs(attrs);
+        out
+    }
+}
 
-    let mut diagram_start_ident = None;
+impl Attrs {
+    pub fn push_attrs(&mut self, attrs: Vec<Attribute>) {
+        use syn::Lit::*;
+        use syn::Meta::*;
 
-    let attrs = attrs.into_iter().flat_map(|attr| {
-        match attr.parse_meta() {
-            Ok(NameValue(MetaNameValue { lit: Str(s), path, .. })) if path.is_ident("doc") => {
+        let mut diagram_start_ident = None;
+
+        let attrs = attrs.into_iter().flat_map(|attr| match attr.parse_meta() {
+            Ok(NameValue(MetaNameValue {
+                lit: Str(s), path, ..
+            })) if path.is_ident("doc") => {
                 let ident = path.get_ident().unwrap();
 
                 let body = s.value();
@@ -90,9 +102,11 @@ pub fn convert_attrs(attrs: Vec<Attribute>) -> syn::Result<Attrs> {
                 let mut temp = vec![];
 
                 if start.is_some() {
-                    diagram_start_ident = Some(ident.clone());
-                    pre.map(|s| temp.push(Attr::DocComment(ident.clone(), s.to_owned())));
+                    if let Some(s) = pre {
+                        temp.push(Attr::DocComment(ident.clone(), s.to_owned()));
+                    }
                     temp.push(Attr::DiagramStart(ident.clone()));
+                    diagram_start_ident.replace(ident.clone());
                 }
 
                 if let Some(body) = body {
@@ -107,23 +121,35 @@ pub fn convert_attrs(attrs: Vec<Attribute>) -> syn::Result<Attrs> {
                 if end.is_some() {
                     diagram_start_ident = None;
                     temp.push(Attr::DiagramEnd(ident.clone()));
-                    post.map(|s| temp.push(Attr::DocComment(ident.clone(), s.to_owned())));
+                    if let Some(s) = post {
+                        temp.push(Attr::DocComment(ident.clone(), s.to_owned()));
+                    }
                 }
 
                 Either::Left(temp.into_iter())
-            },
-            _ => Either::Right(iter::once(Attr::Forward(attr)))
+            }
+            _ => Either::Right(iter::once(Attr::Forward(attr))),
+        });
+
+        self.0.extend(attrs);
+
+        if let Some(ident) = diagram_start_ident.as_ref() {
+            abort!(ident, "diagram code block is not terminated");
         }
-    }).collect();
-
-    if let Some(ident) = diagram_start_ident {
-        abort!(ident, "diagram code block is not terminated");
     }
-
-    Ok(Attrs(attrs))
 }
 
-fn parse_attr_body(input: &str) -> (Option<&str>, Option<&str>, Option<&str>, Option<&str>, Option<&str>) {
+type AttrBodyParts<'a> = (
+    Option<&'a str>,
+    Option<&'a str>,
+    Option<&'a str>,
+    Option<&'a str>,
+    Option<&'a str>,
+);
+
+fn parse_attr_body(
+    input: &str,
+) -> AttrBodyParts {
     const ENTRY: &str = "```mermaid";
     const EXIT: &str = "```";
 
@@ -138,20 +164,19 @@ fn parse_attr_body(input: &str) -> (Option<&str>, Option<&str>, Option<&str>, Op
 
     let nonempty = |x: &&str| !x.is_empty();
 
-    let pre = Some(&input[..sp.map(|x| x).unwrap_or(0)]).filter(nonempty);
-    let start = sp.map(|pos| &input[pos..pos+ENTRY.len()]);
-    
+    let pre = Some(&input[..sp.unwrap_or(0)]).filter(nonempty);
+    let start = sp.map(|pos| &input[pos..pos + ENTRY.len()]);
+
     let body = Some(&input[bp..ep.unwrap_or(input.len())])
         .map(str::trim_end)
         .filter(nonempty);
 
-    let end = ep.map(|pos| &input[pos..pos+EXIT.len()]);
+    let end = ep.map(|pos| &input[pos..pos + EXIT.len()]);
 
     let pp = ep.map(|x| x + EXIT.len()).unwrap_or(input.len());
     let post = Some(&input[pp..]).filter(nonempty);
 
-
-    dbg!((pre, start, body, end, post))
+    (pre, start, body, end, post)
 }
 
 impl Attr {
@@ -166,20 +191,20 @@ impl Attr {
     }
 
     pub fn is_diagram_end(&self) -> bool {
-        match self {
-            Attr::DiagramEnd(_) => true,
-            _ => false,
-        }
+        matches!(self, Attr::DiagramEnd(_))
     }
 
     pub fn expect_diagram_entry_text(&self) -> &str {
-        const ERR_MSG: &str = "unexpected attribute inside a diagram definition: only #[doc] is allowed";
+        const ERR_MSG: &str =
+            "unexpected attribute inside a diagram definition: only #[doc] is allowed";
         match self {
             Attr::DiagramEntry(_, body) => body.as_str(),
-            _ => if let Some(ident) = self.as_ident() {
-                abort!(ident, ERR_MSG)
-            } else {
-                panic!(ERR_MSG)
+            _ => {
+                if let Some(ident) = self.as_ident() {
+                    abort!(ident, ERR_MSG)
+                } else {
+                    panic!(ERR_MSG)
+                }
             }
         }
     }

@@ -1,12 +1,13 @@
 extern crate proc_macro;
+
 use proc_macro::TokenStream;
-use proc_macro_error::{proc_macro_error, abort, ResultExt};
+use proc_macro_error::{abort, proc_macro_error};
 
-use syn::{parse_macro_input, Attribute};
 use quote::quote;
+use syn::{parse_macro_input, Attribute};
 
-mod parse;
 mod attrs;
+mod parse;
 
 /// Example of user-defined [procedural macro attribute][1].
 ///
@@ -14,28 +15,29 @@ mod attrs;
 
 #[proc_macro_attribute]
 #[proc_macro_error]
-pub fn aquamarine(args: TokenStream, input: TokenStream) -> TokenStream {
-    let _args = parse_macro_input!(args as parse::Args);
+pub fn aquamarine(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as parse::Input);
 
-    check_attrs(&input.attrs);
-    // TODO load diagram from proc macro attrs
-    // Make methods like push_diagram, push_diagram_from_file, push_attributes
-    let attrs = attrs::convert_attrs(input.attrs).unwrap_or_abort();
-    let tokens = input.rest;
+    check_input_attrs(&input.attrs);
+
+    let attrs = attrs::Attrs::from(input.attrs);
+    let forward = input.rest;
+
     let tokens = quote! {
         #attrs
-        #tokens
+        #forward
     };
 
     tokens.into()
 }
 
-fn check_attrs(input: &[Attribute]) {
+fn check_input_attrs(input: &[Attribute]) {
     for attr in input {
-        // TODO: support multiple aquamarine entries
         if attr.path.is_ident("aquamarine") {
-            abort!(attr, "multiple `aquamarine` attributes aren't supported -- use the doc comments instead");
+            abort!(
+                attr,
+                "multiple `aquamarine` attributes on one entity are illegal"
+            );
         }
     }
 }
