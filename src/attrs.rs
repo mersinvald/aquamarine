@@ -99,6 +99,7 @@ impl Attrs {
                 let body = s.value();
                 let (pre, start, body, end, post) = parse_attr_body(&body);
 
+                // TODO: replace with generator sometime in the future
                 let mut temp = vec![];
 
                 if start.is_some() {
@@ -110,11 +111,18 @@ impl Attrs {
                 }
 
                 if let Some(body) = body {
-                    let body = body.to_owned();
-                    if diagram_start_ident.is_some() {
-                        temp.push(Attr::DiagramEntry(ident.clone(), body))
-                    } else {
-                        temp.push(Attr::Forward(attr));
+                    // HACK: body that only has whitespaces and is on the same line with start or end token
+                    //       should be filtered-out because otherwise it inserts an empty line
+                    //       caused by the leading whitespace most people add in their doc strings
+                    let skip_empty_body = start.is_some() || end.is_some();
+
+                    if !body.trim().is_empty() || !skip_empty_body {
+                        let body = body.to_owned();
+                        if diagram_start_ident.is_some() {
+                            temp.push(Attr::DiagramEntry(ident.clone(), body))
+                        } else {
+                            temp.push(Attr::Forward(attr));
+                        }
                     }
                 }
 
@@ -147,34 +155,42 @@ type AttrBodyParts<'a> = (
     Option<&'a str>,
 );
 
-fn parse_attr_body(
-    input: &str,
-) -> AttrBodyParts {
+// This function should be called "things you do not to tokenize"
+// TODO: make an actual tokenizer -- this garbage would break on one-liners with multiple diagrams
+fn parse_attr_body(input: &str) -> AttrBodyParts {
     const ENTRY: &str = "```mermaid";
     const EXIT: &str = "```";
 
-    // TODO spans
+    // Why as_ref on ranges:
+    // https://github.com/rust-lang/rust/pull/27186
 
-    let sp = input.find(ENTRY);
-    let ep = match sp {
-        Some(spos) => input[spos + ENTRY.len()..].find(EXIT).map(|p| p + spos),
-        None => input.find(EXIT),
+    // Calculate start, end, and body spans
+    let ss = input.find(ENTRY).map(|sp| sp..sp + ENTRY.len());
+    let ss_ref = ss.as_ref();
+
+    let es = {
+        let offset = ss_ref.map(|x| x.end).unwrap_or(0);
+        input[offset..]
+            .find(EXIT)
+            .map(|p| p + offset..p + offset + EXIT.len())
     };
-    let bp = sp.map(|x| x + ENTRY.len()).unwrap_or(0);
+    let es_ref = es.as_ref();
 
+    let bs = {
+        let ss_end = ss_ref.map(|ss| ss.end).unwrap_or(0);
+        let es_start = es_ref.map(|es| es.start).unwrap_or(input.len());
+        ss_end..es_start
+    };
+
+    // Extract the slices
     let nonempty = |x: &&str| !x.is_empty();
 
-    let pre = Some(&input[..sp.unwrap_or(0)]).filter(nonempty);
-    let start = sp.map(|pos| &input[pos..pos + ENTRY.len()]);
+    let pre = ss_ref.map(|ss| &input[..ss.start]).filter(nonempty);
+    let body = Some(&input[bs]);
+    let post = es_ref.map(|es| &input[es.end..]).filter(nonempty);
 
-    let body = Some(&input[bp..ep.unwrap_or(input.len())])
-        .map(str::trim_end)
-        .filter(nonempty);
-
-    let end = ep.map(|pos| &input[pos..pos + EXIT.len()]);
-
-    let pp = ep.map(|x| x + EXIT.len()).unwrap_or(input.len());
-    let post = Some(&input[pp..]).filter(nonempty);
+    let end = es.map(|es| &input[es]);
+    let start = ss.map(|ss| &input[ss]);
 
     (pre, start, body, end, post)
 }
