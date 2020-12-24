@@ -128,7 +128,9 @@ fn split_attr_body(
     let mut attrs = vec![];
     let mut stack: Vec<&str> = vec![];
 
+    // It's not str::split_whitespace because we wanna preserve empty entries
     let tokens = input.split(" ");
+
     for token in tokens {
         match token {
             TICKS => {
