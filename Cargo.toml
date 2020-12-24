@@ -2,8 +2,9 @@
 name = "aquamarine"
 version = "0.1.0"
 authors = ["Mike Lubinets <git@mkl.dev>"]
-description = "A mermaid generator proc-macro for rustdoc"
-keywords = ["template", "proc_macro", "procmacro"]
+description = "A mermaid.js integration for rustdoc"
+keywords = ["proc_macro", "procmacro", "docs", "doc", "rustdoc", "mermaid", "diagram"]
+categories = ["visualization", "development-tools::build-utils"]
 edition = "2018"
 license = "MIT"
 
