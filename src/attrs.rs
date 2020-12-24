@@ -88,56 +88,26 @@ impl Attrs {
         use syn::Lit::*;
         use syn::Meta::*;
 
-        let mut diagram_start_ident = None;
+        let mut is_inside_diagram = false;
 
         let attrs = attrs.into_iter().flat_map(|attr| match attr.parse_meta() {
             Ok(NameValue(MetaNameValue {
                 lit: Str(s), path, ..
             })) if path.is_ident("doc") => {
                 let ident = path.get_ident().unwrap();
-
-                let body = s.value();
-                let (pre, start, body, end, post) = parse_attr_body(&body);
-
-                // TODO: replace with generator sometime in the future
-                let mut temp = vec![];
-
-                if start.is_some() {
-                    if let Some(s) = pre {
-                        temp.push(Attr::DocComment(ident.clone(), s.to_owned()));
-                    }
-                    temp.push(Attr::DiagramStart(ident.clone()));
-                    diagram_start_ident.replace(ident.clone());
-                }
-
-                if let Some(body) = body {
-                    // HACK: body that only has whitespaces and is on the same line with start or end token
-                    //       should be filtered-out because otherwise it inserts an empty line
-                    //       caused by the leading whitespace most people add in their doc strings
-                    let skip_empty_body = start.is_some() || end.is_some();
-
-                    if !body.trim().is_empty() || !skip_empty_body {
-                        let body = body.to_owned();
-                        if diagram_start_ident.is_some() {
-                            temp.push(Attr::DiagramEntry(ident.clone(), body))
-                        } else {
-                            temp.push(Attr::Forward(attr));
-                        }
-                    }
-                }
-
-                if end.is_some() {
-                    diagram_start_ident = None;
-                    temp.push(Attr::DiagramEnd(ident.clone()));
-                    if let Some(s) = post {
-                        temp.push(Attr::DocComment(ident.clone(), s.to_owned()));
-                    }
-                }
-
-                Either::Left(temp.into_iter())
+                Either::Left(split_attr_body(ident, &s.value(), &mut is_inside_diagram))
             }
             _ => Either::Right(iter::once(Attr::Forward(attr))),
         });
+
+        let mut diagram_start_ident = None;
+
+        let attrs = attrs
+            .inspect(|attr| match attr { 
+                Attr::DiagramStart(ident) => diagram_start_ident = Some(ident.clone()),
+                Attr::DiagramEnd(_) => diagram_start_ident = None,
+                _ => ()
+            });
 
         self.0.extend(attrs);
 
@@ -147,52 +117,55 @@ impl Attrs {
     }
 }
 
-type AttrBodyParts<'a> = (
-    Option<&'a str>,
-    Option<&'a str>,
-    Option<&'a str>,
-    Option<&'a str>,
-    Option<&'a str>,
-);
+fn split_attr_body(ident: &Ident, input: &str, is_inside_diagram: &mut bool) -> impl Iterator<Item=Attr> {
+    const TICKS: &str = "```";
+    const MMD: &str = "```mermaid";
 
-// This function should be called "things you do not to tokenize"
-// TODO: make an actual tokenizer -- this garbage would break on one-liners with multiple diagrams
-fn parse_attr_body(input: &str) -> AttrBodyParts {
-    const ENTRY: &str = "```mermaid";
-    const EXIT: &str = "```";
+    let mut is_inside = *is_inside_diagram;
 
-    // Why as_ref on ranges:
-    // https://github.com/rust-lang/rust/pull/27186
+    let mut attrs = vec![];
+    let mut stack: Vec<&str> = vec![];
 
-    // Calculate start, end, and body spans
-    let ss = input.find(ENTRY).map(|sp| sp..sp + ENTRY.len());
-    let ss_ref = ss.as_ref();
+    let tokens = input.split(" ");
+    for token in tokens {
+        match token {
+            TICKS => if is_inside {
+                is_inside = false;
+            
+                // disallow empty lines inside the diagram
+                let s = stack.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
+                if !s.is_empty() {
+                    attrs.push(Attr::DiagramEntry(ident.clone(), s));
+                }
 
-    let es = {
-        let offset = ss_ref.map(|x| x.end).unwrap_or(0);
-        input[offset..]
-            .find(EXIT)
-            .map(|p| p + offset..p + offset + EXIT.len())
-    };
-    let es_ref = es.as_ref();
+                attrs.push(Attr::DiagramEnd(ident.clone()))
+            }
+            MMD => if !is_inside {
+                is_inside = true;
 
-    let bs = {
-        let ss_end = ss_ref.map(|ss| ss.end).unwrap_or(0);
-        let es_start = es_ref.map(|es| es.start).unwrap_or(input.len());
-        ss_end..es_start
-    };
+                if !stack.is_empty() {
+                    attrs.push(Attr::DocComment(ident.clone(), stack.drain(..).join(" ")));
+                }
+                
+                attrs.push(Attr::DiagramStart(ident.clone()));
+            }
+            other => stack.push(other),
+        }
+    }
 
-    // Extract the slices
-    let nonempty = |x: &&str| !x.is_empty();
+    if !stack.is_empty() {
+        let leftover = stack.drain(..).join(" ");
+        let attr = if is_inside {
+            Attr::DiagramEntry(ident.clone(), leftover)
+        } else {
+            Attr::DocComment(ident.clone(), leftover)
+        };
+        attrs.push(attr);
+    }
 
-    let pre = ss_ref.map(|ss| &input[..ss.start]).filter(nonempty);
-    let body = Some(&input[bs]);
-    let post = es_ref.map(|es| &input[es.end..]).filter(nonempty);
+    *is_inside_diagram = is_inside;
 
-    let end = es.map(|es| &input[es]);
-    let start = ss.map(|ss| &input[ss]);
-
-    (pre, start, body, end, post)
+    attrs.into_iter()
 }
 
 impl Attr {
