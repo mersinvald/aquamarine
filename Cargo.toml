@@ -1,6 +1,6 @@
 [package]
 name = "aquamarine"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Mike Lubinets <git@mkl.dev>"]
 description = "A mermaid generator proc-macro for rustdoc"
 keywords = ["template", "proc_macro", "procmacro"]
