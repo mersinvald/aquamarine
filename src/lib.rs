@@ -17,7 +17,7 @@ mod parse;
 /// # use aquamarine::aquamarine;
 /// #[aquamarine]
 /// /// ```mermaid
-/// ///   -- here goes your mermaid diagram -- 
+/// ///   --- here goes your mermaid diagram ---
 /// /// ```
 /// struct Foo;
 /// ```
