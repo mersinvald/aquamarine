@@ -5,6 +5,9 @@ use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
+const UNEXPECTED_ATTR_ERROR: &str =
+    "unexpected attribute inside a diagram definition: only #[doc] is allowed";
+
 #[derive(Clone, Default)]
 pub struct Attrs(Vec<Attr>);
 
@@ -38,17 +41,9 @@ impl Attr {
     }
 
     pub fn expect_diagram_entry_text(&self) -> &str {
-        const ERR_MSG: &str =
-            "unexpected attribute inside a diagram definition: only #[doc] is allowed";
         match self {
             Attr::DiagramEntry(_, body) => body.as_str(),
-            _ => {
-                if let Some(ident) = self.as_ident() {
-                    abort!(ident, ERR_MSG)
-                } else {
-                    panic!(ERR_MSG)
-                }
-            }
+            _ => abort!(self.as_ident(), UNEXPECTED_ATTR_ERROR),
         }
     }
 }
@@ -125,10 +120,7 @@ impl Attrs {
                 }
                 _ => {
                     if current_location.is_inside() {
-                        abort!(
-                            attr,
-                            "unexpected attribute inside the diagram definition: expected #[doc]"
-                        )
+                        abort!(attr, UNEXPECTED_ATTR_ERROR)
                     } else {
                         self.0.push(Attr::Forward(attr))
                     }
