@@ -2,7 +2,7 @@ use itertools::{Either, Itertools};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
-use std::{cell::Cell, iter};
+use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
 #[derive(Clone, Default)]
@@ -107,47 +107,63 @@ impl Attrs {
         use syn::Lit::*;
         use syn::Meta::*;
 
-        // Iterator state
-        let is_inside_diagram = Cell::new(false);
-
-        let attrs = attrs.into_iter().flat_map(|attr| match attr.parse_meta() {
-            Ok(NameValue(MetaNameValue {
-                lit: Str(s), path, ..
-            })) if path.is_ident("doc") => {
-                let ident = path.get_ident().unwrap();
-                Either::Left(split_attr_body(ident, &s.value(), &is_inside_diagram))
-            }
-            _ => Either::Right(iter::once(Attr::Forward(attr))),
-        });
-
+        let mut current_location = Location::OutsideDiagram;
         let mut diagram_start_ident = None;
 
-        let attrs = attrs.inspect(|attr| match attr {
-            Attr::DiagramStart(ident) => diagram_start_ident = Some(ident.clone()),
-            Attr::DiagramEnd(_) => diagram_start_ident = None,
-            _ => (),
-        });
+        for attr in attrs {
+            match attr.parse_meta() {
+                Ok(NameValue(MetaNameValue {
+                    lit: Str(s), path, ..
+                })) if path.is_ident("doc") => {
+                    let ident = path.get_ident().unwrap();
+                    for attr in split_attr_body(ident, &s.value(), &mut current_location) {
+                        if matches!(attr, Attr::DiagramStart(_)) {
+                            diagram_start_ident.replace(ident.clone());
+                        }
+                        self.0.push(attr);
+                    }
+                }
+                _ => {
+                    if current_location.is_inside() {
+                        abort!(
+                            attr,
+                            "unexpected attribute inside the diagram definition: expected #[doc]"
+                        )
+                    } else {
+                        self.0.push(Attr::Forward(attr))
+                    }
+                }
+            }
+        }
 
-        self.0.extend(attrs);
-
-        if let Some(ident) = diagram_start_ident.as_ref() {
-            abort!(ident, "diagram code block is not terminated");
+        if current_location.is_inside() {
+            abort!(diagram_start_ident, "diagram code block is not terminated");
         }
     }
 }
 
-fn split_attr_body(
-    ident: &Ident,
-    input: &str,
-    is_inside: &Cell<bool>,
-) -> impl Iterator<Item = Attr> {
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum Location {
+    OutsideDiagram,
+    InsideDiagram,
+}
+
+impl Location {
+    fn is_inside(self) -> bool {
+        matches!(self, Location::InsideDiagram)
+    }
+}
+
+fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> impl Iterator<Item = Attr> {
     use DocToken::*;
+    use Location::*;
+
     const MERMAID: &str = "mermaid";
 
     let mut tokens = tokenize_doc_str(input).peekable();
 
     // Special case: empty strings outside the diagram span should be still generated
-    if tokens.peek().is_none() && !is_inside.get() {
+    if tokens.peek().is_none() && !loc.is_inside() {
         return Either::Left(iter::once(Attr::DocComment(ident.clone(), String::new())));
     };
 
@@ -177,17 +193,17 @@ fn split_attr_body(
     };
 
     while let Some(token) = tokens.next() {
-        match (is_inside.get(), &token, tokens.peek()) {
+        match (*loc, &token, tokens.peek()) {
             // Flush the buffer, then open the diagram code block
-            (false, Ticks, Some(Word(MERMAID))) => {
+            (OutsideDiagram, Ticks, Some(Word(MERMAID))) => {
                 tokens.next();
-                is_inside.set(true);
+                *loc = InsideDiagram;
                 flush_buffer_as_doc_comment(&mut ctx);
                 ctx.attrs.push(Attr::DiagramStart(ident.clone()));
             }
             // Flush the buffer, close the code block
-            (true, Ticks, _) => {
-                is_inside.set(false);
+            (InsideDiagram, Ticks, _) => {
+                *loc = OutsideDiagram;
                 flush_buffer_as_diagram_entry(&mut ctx);
                 ctx.attrs.push(Attr::DiagramEnd(ident.clone()))
             }
@@ -196,7 +212,7 @@ fn split_attr_body(
     }
 
     if !ctx.buffer.is_empty() {
-        if is_inside.get() {
+        if loc.is_inside() {
             flush_buffer_as_diagram_entry(&mut ctx);
         } else {
             flush_buffer_as_doc_comment(&mut ctx);
@@ -318,16 +334,16 @@ mod tests {
 
         struct TestCase<'a> {
             ident: Ident,
-            is_inside: bool,
+            location: Location,
             input: &'a str,
-            expect_is_inside: bool,
+            expect_location: Location,
             expect_attrs: Vec<Attr>,
         }
 
         fn check(case: TestCase) {
-            let is_inside = Cell::new(case.is_inside);
-            let attrs: Vec<_> = split_attr_body(&case.ident, case.input, &is_inside).collect();
-            assert_eq!(is_inside.get(), case.expect_is_inside);
+            let mut loc = case.location;
+            let attrs: Vec<_> = split_attr_body(&case.ident, case.input, &mut loc).collect();
+            assert_eq!(loc, case.expect_location);
             assert_eq!(attrs, case.expect_attrs);
         }
 
@@ -335,9 +351,9 @@ mod tests {
         fn one_line_one_diagram() {
             let case = TestCase {
                 ident: i(),
-                is_inside: false,
+                location: Location::OutsideDiagram,
                 input: "```mermaid abcd```",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "abcd".into()),
@@ -352,9 +368,9 @@ mod tests {
         fn one_line_multiple_diagrams() {
             let case = TestCase {
                 ident: i(),
-                is_inside: false,
+                location: Location::OutsideDiagram,
                 input: "```mermaid abcd``` ```mermaid efgh``` ```mermaid ijkl```",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "abcd".into()),
@@ -377,9 +393,9 @@ mod tests {
         fn other_snippet() {
             let case = TestCase {
                 ident: i(),
-                is_inside: false,
+                location: Location::OutsideDiagram,
                 input: "```rust panic!()```",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![Attr::DocComment(i(), "``` rust panic!() ```".into())],
             };
 
@@ -390,9 +406,9 @@ mod tests {
         fn carry_over() {
             let case = TestCase {
                 ident: i(),
-                is_inside: false,
+                location: Location::OutsideDiagram,
                 input: "left```mermaid abcd```right",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![
                     Attr::DocComment(i(), "left".into()),
                     Attr::DiagramStart(i()),
@@ -409,9 +425,9 @@ mod tests {
         fn multiline_termination() {
             let case = TestCase {
                 ident: i(),
-                is_inside: true,
+                location: Location::InsideDiagram,
                 input: "abcd```",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
@@ -425,9 +441,9 @@ mod tests {
         fn multiline_termination_single_token() {
             let case = TestCase {
                 ident: i(),
-                is_inside: true,
+                location: Location::InsideDiagram,
                 input: "```",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![Attr::DiagramEnd(i())],
             };
 
@@ -438,9 +454,9 @@ mod tests {
         fn multiline_termination_carry() {
             let case = TestCase {
                 ident: i(),
-                is_inside: true,
+                location: Location::InsideDiagram,
                 input: "abcd```right",
-                expect_is_inside: false,
+                expect_location: Location::OutsideDiagram,
                 expect_attrs: vec![
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
