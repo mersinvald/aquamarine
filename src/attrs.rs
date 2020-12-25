@@ -63,7 +63,7 @@ impl From<Vec<Attribute>> for Attrs {
 
 impl quote::ToTokens for Attrs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let mut attrs = self.0.iter().peekable();
+        let mut attrs = self.0.iter();
         while let Some(attr) = attrs.next() {
             match attr {
                 Attr::Forward(attr) => attr.to_tokens(tokens),
@@ -71,20 +71,15 @@ impl quote::ToTokens for Attrs {
                     #[doc = #comment]
                 }),
                 Attr::DiagramStart(_) => {
-                    let preabmle = iter::once(r#"<div class="mermaid">"#);
-                    let postamble = iter::once("</div>");
-
                     let diagram = attrs
                         .by_ref()
                         .take_while(|x| !x.is_diagram_end())
                         .map(Attr::expect_diagram_entry_text);
 
-                    let body = preabmle.chain(diagram).chain(postamble).join("\n");
-
-                    tokens.extend(generate_diagram_rustdoc(&body));
+                    tokens.extend(generate_diagram_rustdoc(diagram));
                 }
                 // If that happens, then the parsing stage is faulty: doc comments outside of
-                // in between Start and End tokens are to be emitted as Attr::Forward
+                // in between Start and End tokens are to be emitted as Attr::Forward or Attr::DocComment
                 Attr::DiagramEntry(_, body) => {
                     emit_call_site_warning!("encountered an unexpected attribute that's going to be ignored, this is a bug! ({})", body);
                 }
@@ -94,7 +89,12 @@ impl quote::ToTokens for Attrs {
     }
 }
 
-fn generate_diagram_rustdoc(body: &str) -> TokenStream {
+fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
+    let preamble = iter::once(r#"<div class="mermaid">"#);
+    let postamble = iter::once("</div>");
+
+    let body = preamble.chain(parts).chain(postamble).join("\n");
+
     quote! {
         #[doc = r#"<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>"#]
         #[doc = r#"<script>window.mermaid == null && mermaid.initialize({startOnLoad:true});</script>"#]
