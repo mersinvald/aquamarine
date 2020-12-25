@@ -119,7 +119,7 @@ impl Attrs {
                     }
                 }
                 _ => {
-                    if current_location.is_inside() {
+                    if let Location::InsideDiagram = current_location {
                         abort!(attr, UNEXPECTED_ATTR_ERROR)
                     } else {
                         self.0.push(Attr::Forward(attr))
