@@ -1,4 +1,4 @@
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
@@ -146,7 +146,7 @@ impl Location {
     }
 }
 
-fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> impl Iterator<Item = Attr> {
+fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> {
     use DocToken::*;
     use Location::*;
 
@@ -156,7 +156,7 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> impl Itera
 
     // Special case: empty strings outside the diagram span should be still generated
     if tokens.peek().is_none() && !loc.is_inside() {
-        return Either::Left(iter::once(Attr::DocComment(ident.clone(), String::new())));
+        return vec![Attr::DocComment(ident.clone(), String::new())];
     };
 
     // To aid rustc with type inference in closures
@@ -211,7 +211,7 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> impl Itera
         };
     }
 
-    Either::Right(ctx.attrs.into_iter())
+    ctx.attrs
 }
 
 enum DocToken<'a> {
@@ -334,7 +334,7 @@ mod tests {
 
         fn check(case: TestCase) {
             let mut loc = case.location;
-            let attrs: Vec<_> = split_attr_body(&case.ident, case.input, &mut loc).collect();
+            let attrs = split_attr_body(&case.ident, case.input, &mut loc);
             assert_eq!(loc, case.expect_location);
             assert_eq!(attrs, case.expect_attrs);
         }
