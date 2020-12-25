@@ -2,10 +2,10 @@ use itertools::{Either, Itertools};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
-use std::{cell::Cell, fmt, iter};
+use std::{cell::Cell, iter};
 use syn::{Attribute, Ident, MetaNameValue};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct Attrs(Vec<Attr>);
 
 #[derive(Clone)]
@@ -20,18 +20,6 @@ pub enum Attr {
     DiagramEntry(Ident, String),
     /// Diagram end token
     DiagramEnd(Ident),
-}
-
-impl fmt::Debug for Attr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Attr::Forward(..) => f.write_str("Attr::Forward"),
-            Attr::DocComment(..) => f.write_str("Attr::DocComment"),
-            Attr::DiagramStart(..) => f.write_str("Attr::DiagramStart"),
-            Attr::DiagramEntry(..) => f.write_str("Attr::DiagramEntry"),
-            Attr::DiagramEnd(..) => f.write_str("Attr::DiagramEnd"),
-        }
-    }
 }
 
 impl quote::ToTokens for Attrs {
@@ -243,6 +231,228 @@ impl Attr {
                     panic!(ERR_MSG)
                 }
             }
+        }
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::{Attr, split_inclusive};
+    use std::fmt;
+
+    #[cfg(test)]
+    impl fmt::Debug for Attr {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Attr::Forward(..) => f.write_str("Attr::Forward"),
+                Attr::DocComment(_, body) => write!(f, "Attr::DocComment({:?})", body),
+                Attr::DiagramStart(..) => f.write_str("Attr::DiagramStart"),
+                Attr::DiagramEntry(_, body) => write!(f, "Attr::DiagramEntry({:?})", body),
+                Attr::DiagramEnd(..) => f.write_str("Attr::DiagramEnd"),
+            }
+        }
+    }
+
+
+    #[cfg(test)]
+    impl Eq for Attr {}
+
+    #[cfg(test)]
+    impl PartialEq for Attr {
+        fn eq(&self, other: &Self) -> bool {
+            use std::mem::discriminant;
+            use Attr::*;
+            match (self, other) {
+                (DocComment(_, a), DocComment(_, b)) => a == b,
+                (DiagramEntry(_, a), DiagramEntry(_, b)) => a == b,
+                (a, b) => discriminant(a) == discriminant(b)
+            }
+        }
+    }
+
+    #[test]
+    fn temporaty_split_inclusive() {
+        let src = "```";
+        let out: Vec<_> = split_inclusive(src, "```");
+        assert_eq!(&out, &[
+            "```",
+        ]);
+
+        let src = "```abcd```";
+        let out: Vec<_> = split_inclusive(src, "```");
+        assert_eq!(&out, &[
+            "```",
+            "abcd",
+            "```"
+        ]);
+
+        let src = "left```abcd```right";
+        let out: Vec<_> = split_inclusive(src, "```");
+        assert_eq!(&out, &[
+            "left",
+            "```",
+            "abcd",
+            "```",
+            "right",
+        ]);
+    }
+
+    mod split_attr_body_tests {
+        use super::super::*;
+
+        use proc_macro2::Ident;
+        use proc_macro2::Span;
+
+        use pretty_assertions::assert_eq;
+
+        fn i() -> Ident {
+            Ident::new("fake", Span::call_site())
+        }
+        
+        struct TestCase<'a> {
+            ident: Ident,
+            is_inside: bool,
+            input: &'a str,
+            expect_is_inside: bool,
+            expect_attrs: Vec<Attr>,
+        }
+        
+        fn check(case: TestCase) {
+            let is_inside = Cell::new(case.is_inside);
+            let attrs: Vec<_> = split_attr_body(&case.ident, case.input, &is_inside).collect();
+            assert_eq!(is_inside.get(), case.expect_is_inside);
+            assert_eq!(attrs, case.expect_attrs);
+        }
+    
+        #[test]
+        fn one_line_one_diagram() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: false,
+                input: "```mermaid abcd```",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DiagramStart(i()),
+                    Attr::DiagramEntry(i(), "abcd".into()),
+                    Attr::DiagramEnd(i()),
+                ]
+            };
+    
+            check(case)
+        }
+        
+        #[test]
+        fn one_line_multiple_diagrams() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: false,
+                input: "```mermaid abcd``` ```mermaid efgh``` ```mermaid ijkl```",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DiagramStart(i()),
+                    Attr::DiagramEntry(i(), "abcd".into()),
+                    Attr::DiagramEnd(i()),
+
+                    Attr::DocComment(i(), " ".into()),
+                    
+                    Attr::DiagramStart(i()),
+                    Attr::DiagramEntry(i(), "efgh".into()),
+                    Attr::DiagramEnd(i()),
+
+                    Attr::DocComment(i(), " ".into()),
+                    
+                    Attr::DiagramStart(i()),
+                    Attr::DiagramEntry(i(), "ijkl".into()),
+                    Attr::DiagramEnd(i()),
+                ]
+            };
+    
+            check(case)
+        }
+    
+        #[test]
+        fn other_snippet() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: false,
+                input: "```rust panic!()```",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DocComment(i(), "```rust panic!()```".into()),
+                ]
+            };
+    
+            check(case)
+        }
+    
+        #[test]
+        fn carry_over() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: false,
+                input: "left```mermaid abcd```right",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DocComment(i(), "left".into()),
+                    Attr::DiagramStart(i()),
+                    Attr::DiagramEntry(i(), "abcd".into()),
+                    Attr::DiagramEnd(i()),
+                    Attr::DocComment(i(), "right".into()),
+                ]
+            };
+    
+            check(case)
+        }
+
+        #[test]
+        fn multiline_termination() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: true,
+                input: "abcd```",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DiagramEntry(i(), "abcd".into()),
+                    Attr::DiagramEnd(i()),
+                ]
+            };
+
+            check(case)
+        }
+
+
+        #[test]
+        fn multiline_termination_single_token() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: true,
+                input: "```",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DiagramEnd(i()),
+                ]
+            };
+
+            check(case)
+        }
+
+        #[test]
+        fn multiline_termination_carry() {
+            let case = TestCase {
+                ident: i(),
+                is_inside: true,
+                input: "abcd```right",
+                expect_is_inside: false,
+                expect_attrs: vec![
+                    Attr::DiagramEntry(i(), "abcd".into()),
+                    Attr::DiagramEnd(i()),
+                    Attr::DocComment(i(), "right".into()),
+                ]
+            };
+    
+            check(case)
         }
     }
 }

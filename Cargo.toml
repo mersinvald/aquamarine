@@ -20,3 +20,6 @@ itertools = "0.9"
 [dependencies.syn]
 version = "1"
 features = ["full"]
+
+[dev-dependencies]
+pretty_assertions = "0.6"
