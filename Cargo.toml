@@ -16,10 +16,7 @@ quote = "1"
 proc-macro2 = "1"
 proc-macro-error = "1"
 itertools = "0.9"
-
-[dependencies.syn]
-version = "1"
-features = ["full"]
+syn = "1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
