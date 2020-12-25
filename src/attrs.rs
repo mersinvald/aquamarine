@@ -117,52 +117,72 @@ impl Attrs {
     }
 }
 
+
+// This implementation cannot handle nested markdown code snippets, 
+// though that shouldn't be an issue since Mermaid doesn't support markdown, so such input is highly unlikely.
+//
+// I don't like this method, but after rewriting it 5 times, 
+// I think I'll just keep it as it is until I get some will to tackle it again.
 fn split_attr_body(
     ident: &Ident,
     input: &str,
     is_inside: &Cell<bool>,
 ) -> impl Iterator<Item = Attr> {
     const TICKS: &str = "```";
-    const MMD: &str = "```mermaid";
+    const MERMAID: &str = "mermaid";
 
     let mut attrs = vec![];
-    let mut stack: Vec<&str> = vec![];
+    let mut buffer: Vec<&str> = vec![];
+    let mut prev: Option<&str> = None;
 
     // It's not str::split_whitespace because we wanna preserve empty entries
-    let tokens = input.split(" ");
+    let tokens = split_inclusive(input, TICKS);
+
+    // Special case: empty strings outside the diagram span should be still generated
+    if tokens.is_empty() && !is_inside.get() {
+        attrs.push(Attr::DocComment(ident.clone(), buffer.drain(..).join(" ")));
+    }
 
     for token in tokens {
-        match token {
-            TICKS => {
-                if is_inside.get() {
-                    is_inside.set(false);
+        if token == TICKS {
+            if is_inside.get() {
+                is_inside.set(false);
 
-                    // disallow empty lines inside the diagram
-                    let s = stack.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
-                    if !s.is_empty() {
-                        attrs.push(Attr::DiagramEntry(ident.clone(), s));
-                    }
+                // disallow empty lines inside the diagram
+                let s = buffer.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
+                if !s.is_empty() {
+                    attrs.push(Attr::DiagramEntry(ident.clone(), s));
+                }
 
-                    attrs.push(Attr::DiagramEnd(ident.clone()))
+                attrs.push(Attr::DiagramEnd(ident.clone()))
+            } else {
+                prev.replace(token);
+            }
+        } else if token.starts_with(MERMAID) && prev == Some(&TICKS) {
+            prev = None;
+            if !is_inside.get() {
+                is_inside.set(true);
+
+                if !buffer.is_empty() {
+                    attrs.push(Attr::DocComment(ident.clone(), buffer.drain(..).join(" ")));
+                }
+
+                attrs.push(Attr::DiagramStart(ident.clone()));
+
+                // Extract whatever is in the same token after "mermaid", removing whitespaces
+                let postfix = token.trim_start_matches(MERMAID).trim();
+                if !postfix.is_empty() {
+                    buffer.push(postfix);
                 }
             }
-            MMD => {
-                if !is_inside.get() {
-                    is_inside.set(true);
-
-                    if !stack.is_empty() {
-                        attrs.push(Attr::DocComment(ident.clone(), stack.drain(..).join(" ")));
-                    }
-
-                    attrs.push(Attr::DiagramStart(ident.clone()));
-                }
-            }
-            other => stack.push(other),
+        } else {
+            buffer.extend(prev.into_iter());
+            buffer.push(token);
         }
     }
 
-    if !stack.is_empty() {
-        let leftover = stack.drain(..).join(" ");
+    if !prev.is_none() || !buffer.is_empty() {
+        let leftover = buffer.drain(..).chain(prev.into_iter()).join("");
         let attr = if is_inside.get() {
             Attr::DiagramEntry(ident.clone(), leftover)
         } else {
@@ -172,6 +192,28 @@ fn split_attr_body(
     }
 
     attrs.into_iter()
+}
+
+// TODO: remove once str::split_inclusive is stable
+fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> Vec<&'a str> {
+    let mut tokens = vec![];
+    let mut prev = 0;
+
+    for (idx, matches) in input.match_indices(delim) {
+        if prev != idx {
+            tokens.push(&input[prev..idx]);
+        }
+
+        prev = idx + matches.len();
+
+        tokens.push(matches);
+    }
+
+    if prev < input.len() {
+        tokens.push(&input[prev..]);
+    }
+
+    tokens
 }
 
 impl Attr {
