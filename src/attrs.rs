@@ -22,6 +22,45 @@ pub enum Attr {
     DiagramEnd(Ident),
 }
 
+impl Attr {
+    pub fn as_ident(&self) -> Option<&Ident> {
+        match self {
+            Attr::Forward(attr) => attr.path.get_ident(),
+            Attr::DocComment(ident, _) => Some(ident),
+            Attr::DiagramStart(ident) => Some(ident),
+            Attr::DiagramEntry(ident, _) => Some(ident),
+            Attr::DiagramEnd(ident) => Some(ident),
+        }
+    }
+
+    pub fn is_diagram_end(&self) -> bool {
+        matches!(self, Attr::DiagramEnd(_))
+    }
+
+    pub fn expect_diagram_entry_text(&self) -> &str {
+        const ERR_MSG: &str =
+            "unexpected attribute inside a diagram definition: only #[doc] is allowed";
+        match self {
+            Attr::DiagramEntry(_, body) => body.as_str(),
+            _ => {
+                if let Some(ident) = self.as_ident() {
+                    abort!(ident, ERR_MSG)
+                } else {
+                    panic!(ERR_MSG)
+                }
+            }
+        }
+    }
+}
+
+impl From<Vec<Attribute>> for Attrs {
+    fn from(attrs: Vec<Attribute>) -> Self {
+        let mut out = Attrs::default();
+        out.push_attrs(attrs);
+        out
+    }
+}
+
 impl quote::ToTokens for Attrs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mut attrs = self.0.iter().peekable();
@@ -63,14 +102,6 @@ fn generate_diagram_rustdoc(body: &str) -> TokenStream {
     }
 }
 
-impl From<Vec<Attribute>> for Attrs {
-    fn from(attrs: Vec<Attribute>) -> Self {
-        let mut out = Attrs::default();
-        out.push_attrs(attrs);
-        out
-    }
-}
-
 impl Attrs {
     pub fn push_attrs(&mut self, attrs: Vec<Attribute>) {
         use syn::Lit::*;
@@ -105,85 +136,105 @@ impl Attrs {
     }
 }
 
-
-// This implementation cannot handle nested markdown code snippets, 
-// though that shouldn't be an issue since Mermaid doesn't support markdown, so such input is highly unlikely.
-//
-// I don't like this method, but after rewriting it 5 times, 
-// I think I'll just keep it as it is until I get some will to tackle it again.
 fn split_attr_body(
     ident: &Ident,
     input: &str,
     is_inside: &Cell<bool>,
 ) -> impl Iterator<Item = Attr> {
-    const TICKS: &str = "```";
+    use DocToken::*;
     const MERMAID: &str = "mermaid";
 
-    let mut attrs = vec![];
-    let mut buffer: Vec<&str> = vec![];
-    let mut prev: Option<&str> = None;
-
-    // It's not str::split_whitespace because we wanna preserve empty entries
-    let tokens = split_inclusive(input, TICKS);
+    let mut tokens = tokenize_doc_str(input).peekable();
 
     // Special case: empty strings outside the diagram span should be still generated
-    if tokens.is_empty() && !is_inside.get() {
-        attrs.push(Attr::DocComment(ident.clone(), buffer.drain(..).join(" ")));
+    if tokens.peek().is_none() && !is_inside.get() {
+        return Either::Left(iter::once(Attr::DocComment(ident.clone(), String::new())));
+    };
+
+    // To aid rustc with type inference in closures
+    #[derive(Default)]
+    struct Ctx<'a> {
+        attrs: Vec<Attr>,
+        buffer: Vec<&'a str>,
     }
 
-    for token in tokens {
-        if token == TICKS {
-            if is_inside.get() {
-                is_inside.set(false);
+    let mut ctx = Default::default();
 
-                // disallow empty lines inside the diagram
-                let s = buffer.drain(..).filter(|s| !s.trim().is_empty()).join(" ");
-                if !s.is_empty() {
-                    attrs.push(Attr::DiagramEntry(ident.clone(), s));
-                }
+    let flush_buffer_as_doc_comment = |ctx: &mut Ctx| {
+        if !ctx.buffer.is_empty() {
+            ctx.attrs.push(Attr::DocComment(
+                ident.clone(),
+                ctx.buffer.drain(..).join(" "),
+            ));
+        }
+    };
 
-                attrs.push(Attr::DiagramEnd(ident.clone()))
-            } else {
-                prev.replace(token);
-            }
-        } else if token.starts_with(MERMAID) && prev == Some(&TICKS) {
-            prev = None;
-            if !is_inside.get() {
+    let flush_buffer_as_diagram_entry = |ctx: &mut Ctx| {
+        let s = ctx.buffer.drain(..).join(" ");
+        if !s.trim().is_empty() {
+            ctx.attrs.push(Attr::DiagramEntry(ident.clone(), s));
+        }
+    };
+
+    while let Some(token) = tokens.next() {
+        match (is_inside.get(), &token, tokens.peek()) {
+            // Flush the buffer, then open the diagram code block
+            (false, Ticks, Some(Word(MERMAID))) => {
+                tokens.next();
                 is_inside.set(true);
-
-                if !buffer.is_empty() {
-                    attrs.push(Attr::DocComment(ident.clone(), buffer.drain(..).join(" ")));
-                }
-
-                attrs.push(Attr::DiagramStart(ident.clone()));
-
-                // Extract whatever is in the same token after "mermaid", removing whitespaces
-                let postfix = token.trim_start_matches(MERMAID).trim();
-                if !postfix.is_empty() {
-                    buffer.push(postfix);
-                }
+                flush_buffer_as_doc_comment(&mut ctx);
+                ctx.attrs.push(Attr::DiagramStart(ident.clone()));
             }
-        } else {
-            buffer.extend(prev.into_iter());
-            buffer.push(token);
+            // Flush the buffer, close the code block
+            (true, Ticks, _) => {
+                is_inside.set(false);
+                flush_buffer_as_diagram_entry(&mut ctx);
+                ctx.attrs.push(Attr::DiagramEnd(ident.clone()))
+            }
+            _ => ctx.buffer.push(token.as_str()),
         }
     }
 
-    if !prev.is_none() || !buffer.is_empty() {
-        let leftover = buffer.drain(..).chain(prev.into_iter()).join("");
-        let attr = if is_inside.get() {
-            Attr::DiagramEntry(ident.clone(), leftover)
+    if !ctx.buffer.is_empty() {
+        if is_inside.get() {
+            flush_buffer_as_diagram_entry(&mut ctx);
         } else {
-            Attr::DocComment(ident.clone(), leftover)
+            flush_buffer_as_doc_comment(&mut ctx);
         };
-        attrs.push(attr);
     }
 
-    attrs.into_iter()
+    Either::Right(ctx.attrs.into_iter())
+}
+
+enum DocToken<'a> {
+    Ticks,
+    Word(&'a str),
+}
+
+impl<'a> DocToken<'a> {
+    fn as_str(&self) -> &'a str {
+        match self {
+            DocToken::Ticks => "```",
+            DocToken::Word(s) => s,
+        }
+    }
+}
+
+fn tokenize_doc_str<'a>(input: &'a str) -> impl Iterator<Item = DocToken> {
+    const TICKS: &str = "```";
+    split_inclusive(input, TICKS)
+        .flat_map(|token| {
+            // not str::split_whitespace because we don't wanna filter out whitespaces, just split by them
+            token.split(" ")
+        })
+        .map(|token| match token {
+            TICKS => DocToken::Ticks,
+            other => DocToken::Word(other),
+        })
 }
 
 // TODO: remove once str::split_inclusive is stable
-fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> Vec<&'a str> {
+fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<Item = &'a str> {
     let mut tokens = vec![];
     let mut prev = 0;
 
@@ -201,45 +252,12 @@ fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> Vec<&'a str> {
         tokens.push(&input[prev..]);
     }
 
-    tokens
+    tokens.into_iter()
 }
-
-impl Attr {
-    pub fn as_ident(&self) -> Option<&Ident> {
-        match self {
-            Attr::Forward(attr) => attr.path.get_ident(),
-            Attr::DocComment(ident, _) => Some(ident),
-            Attr::DiagramStart(ident) => Some(ident),
-            Attr::DiagramEntry(ident, _) => Some(ident),
-            Attr::DiagramEnd(ident) => Some(ident),
-        }
-    }
-
-    pub fn is_diagram_end(&self) -> bool {
-        matches!(self, Attr::DiagramEnd(_))
-    }
-
-    pub fn expect_diagram_entry_text(&self) -> &str {
-        const ERR_MSG: &str =
-            "unexpected attribute inside a diagram definition: only #[doc] is allowed";
-        match self {
-            Attr::DiagramEntry(_, body) => body.as_str(),
-            _ => {
-                if let Some(ident) = self.as_ident() {
-                    abort!(ident, ERR_MSG)
-                } else {
-                    panic!(ERR_MSG)
-                }
-            }
-        }
-    }
-}
-
-
 
 #[cfg(test)]
 mod tests {
-    use super::{Attr, split_inclusive};
+    use super::{split_inclusive, Attr};
     use std::fmt;
 
     #[cfg(test)]
@@ -255,7 +273,6 @@ mod tests {
         }
     }
 
-
     #[cfg(test)]
     impl Eq for Attr {}
 
@@ -267,36 +284,24 @@ mod tests {
             match (self, other) {
                 (DocComment(_, a), DocComment(_, b)) => a == b,
                 (DiagramEntry(_, a), DiagramEntry(_, b)) => a == b,
-                (a, b) => discriminant(a) == discriminant(b)
+                (a, b) => discriminant(a) == discriminant(b),
             }
         }
     }
 
     #[test]
-    fn temporaty_split_inclusive() {
+    fn temp_split_inclusive() {
         let src = "```";
-        let out: Vec<_> = split_inclusive(src, "```");
-        assert_eq!(&out, &[
-            "```",
-        ]);
+        let out: Vec<_> = split_inclusive(src, "```").collect();
+        assert_eq!(&out, &["```",]);
 
         let src = "```abcd```";
-        let out: Vec<_> = split_inclusive(src, "```");
-        assert_eq!(&out, &[
-            "```",
-            "abcd",
-            "```"
-        ]);
+        let out: Vec<_> = split_inclusive(src, "```").collect();
+        assert_eq!(&out, &["```", "abcd", "```"]);
 
         let src = "left```abcd```right";
-        let out: Vec<_> = split_inclusive(src, "```");
-        assert_eq!(&out, &[
-            "left",
-            "```",
-            "abcd",
-            "```",
-            "right",
-        ]);
+        let out: Vec<_> = split_inclusive(src, "```").collect();
+        assert_eq!(&out, &["left", "```", "abcd", "```", "right",]);
     }
 
     mod split_attr_body_tests {
@@ -310,7 +315,7 @@ mod tests {
         fn i() -> Ident {
             Ident::new("fake", Span::call_site())
         }
-        
+
         struct TestCase<'a> {
             ident: Ident,
             is_inside: bool,
@@ -318,14 +323,14 @@ mod tests {
             expect_is_inside: bool,
             expect_attrs: Vec<Attr>,
         }
-        
+
         fn check(case: TestCase) {
             let is_inside = Cell::new(case.is_inside);
             let attrs: Vec<_> = split_attr_body(&case.ident, case.input, &is_inside).collect();
             assert_eq!(is_inside.get(), case.expect_is_inside);
             assert_eq!(attrs, case.expect_attrs);
         }
-    
+
         #[test]
         fn one_line_one_diagram() {
             let case = TestCase {
@@ -337,12 +342,12 @@ mod tests {
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
-                ]
+                ],
             };
-    
+
             check(case)
         }
-        
+
         #[test]
         fn one_line_multiple_diagrams() {
             let case = TestCase {
@@ -354,24 +359,20 @@ mod tests {
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
-
                     Attr::DocComment(i(), " ".into()),
-                    
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "efgh".into()),
                     Attr::DiagramEnd(i()),
-
                     Attr::DocComment(i(), " ".into()),
-                    
                     Attr::DiagramStart(i()),
                     Attr::DiagramEntry(i(), "ijkl".into()),
                     Attr::DiagramEnd(i()),
-                ]
+                ],
             };
-    
+
             check(case)
         }
-    
+
         #[test]
         fn other_snippet() {
             let case = TestCase {
@@ -379,14 +380,12 @@ mod tests {
                 is_inside: false,
                 input: "```rust panic!()```",
                 expect_is_inside: false,
-                expect_attrs: vec![
-                    Attr::DocComment(i(), "```rust panic!()```".into()),
-                ]
+                expect_attrs: vec![Attr::DocComment(i(), "``` rust panic!() ```".into())],
             };
-    
+
             check(case)
         }
-    
+
         #[test]
         fn carry_over() {
             let case = TestCase {
@@ -400,9 +399,9 @@ mod tests {
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
                     Attr::DocComment(i(), "right".into()),
-                ]
+                ],
             };
-    
+
             check(case)
         }
 
@@ -416,12 +415,11 @@ mod tests {
                 expect_attrs: vec![
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
-                ]
+                ],
             };
 
             check(case)
         }
-
 
         #[test]
         fn multiline_termination_single_token() {
@@ -430,9 +428,7 @@ mod tests {
                 is_inside: true,
                 input: "```",
                 expect_is_inside: false,
-                expect_attrs: vec![
-                    Attr::DiagramEnd(i()),
-                ]
+                expect_attrs: vec![Attr::DiagramEnd(i())],
             };
 
             check(case)
@@ -449,9 +445,9 @@ mod tests {
                     Attr::DiagramEntry(i(), "abcd".into()),
                     Attr::DiagramEnd(i()),
                     Attr::DocComment(i(), "right".into()),
-                ]
+                ],
             };
-    
+
             check(case)
         }
     }
