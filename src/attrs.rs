@@ -220,12 +220,12 @@ impl<'a> DocToken<'a> {
     }
 }
 
-fn tokenize_doc_str<'a>(input: &'a str) -> impl Iterator<Item = DocToken> {
+fn tokenize_doc_str(input: &str) -> impl Iterator<Item = DocToken> {
     const TICKS: &str = "```";
     split_inclusive(input, TICKS)
         .flat_map(|token| {
-            // not str::split_whitespace because we don't wanna filter out whitespaces, just split by them
-            token.split(" ")
+            // not str::split_whitespace because we don't wanna filter-out the whitespace tokens
+            token.split(' ')
         })
         .map(|token| match token {
             TICKS => DocToken::Ticks,
