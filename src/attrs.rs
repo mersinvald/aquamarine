@@ -5,6 +5,8 @@ use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
+const MERMAID_JS: &str = "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js";
+
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
 
@@ -88,10 +90,11 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
+    let mermaid_js_include = format!(r#"<script src="{}"></script>"#, MERMAID_JS);
     let body = preamble.chain(parts).chain(postamble).join("\n");
 
     quote! {
-        #[doc = r#"<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>"#]
+        #[doc = #mermaid_js_include]
         #[doc = r#"<script>window.mermaid == null && mermaid.initialize({startOnLoad:true});</script>"#]
         #[doc = #body]
     }
@@ -147,9 +150,9 @@ impl Location {
 }
 
 fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> {
-    use DocToken::*;
     use Location::*;
 
+    const TICKS: &str = "```";
     const MERMAID: &str = "mermaid";
 
     let mut tokens = tokenize_doc_str(input).peekable();
@@ -185,21 +188,21 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
     };
 
     while let Some(token) = tokens.next() {
-        match (*loc, &token, tokens.peek()) {
+        match (*loc, token, tokens.peek()) {
             // Flush the buffer, then open the diagram code block
-            (OutsideDiagram, Ticks, Some(Word(MERMAID))) => {
+            (OutsideDiagram, TICKS, Some(&MERMAID)) => {
                 tokens.next();
                 *loc = InsideDiagram;
                 flush_buffer_as_doc_comment(&mut ctx);
                 ctx.attrs.push(Attr::DiagramStart(ident.clone()));
             }
             // Flush the buffer, close the code block
-            (InsideDiagram, Ticks, _) => {
+            (InsideDiagram, TICKS, _) => {
                 *loc = OutsideDiagram;
                 flush_buffer_as_diagram_entry(&mut ctx);
                 ctx.attrs.push(Attr::DiagramEnd(ident.clone()))
             }
-            _ => ctx.buffer.push(token.as_str()),
+            _ => ctx.buffer.push(token),
         }
     }
 
@@ -214,31 +217,12 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
     ctx.attrs
 }
 
-enum DocToken<'a> {
-    Ticks,
-    Word(&'a str),
-}
-
-impl<'a> DocToken<'a> {
-    fn as_str(&self) -> &'a str {
-        match self {
-            DocToken::Ticks => "```",
-            DocToken::Word(s) => s,
-        }
-    }
-}
-
-fn tokenize_doc_str(input: &str) -> impl Iterator<Item = DocToken> {
+fn tokenize_doc_str(input: &str) -> impl Iterator<Item = &str> {
     const TICKS: &str = "```";
-    split_inclusive(input, TICKS)
-        .flat_map(|token| {
-            // not str::split_whitespace because we don't wanna filter-out the whitespace tokens
-            token.split(' ')
-        })
-        .map(|token| match token {
-            TICKS => DocToken::Ticks,
-            other => DocToken::Word(other),
-        })
+    split_inclusive(input, TICKS).flat_map(|token| {
+        // not str::split_whitespace because we don't wanna filter-out the whitespace tokens
+        token.split(' ')
+    })
 }
 
 // TODO: remove once str::split_inclusive is stable
@@ -247,9 +231,7 @@ fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<
     let mut prev = 0;
 
     for (idx, matches) in input.match_indices(delim) {
-        if prev != idx {
-            tokens.push(&input[prev..idx]);
-        }
+        tokens.extend(nonempty(&input[prev..idx]));
 
         prev = idx + matches.len();
 
@@ -261,6 +243,14 @@ fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<
     }
 
     tokens.into_iter()
+}
+
+fn nonempty(s: &str) -> Option<&str> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
 }
 
 #[cfg(test)]
