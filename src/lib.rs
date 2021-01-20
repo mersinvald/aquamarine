@@ -1,3 +1,29 @@
+//! Aquamarine is a procedural macro extension for [rustdoc](https://github.com/mersinvald/dotfiles), 
+//! that aims to improve the visual component of Rust documentation through use of the [mermaid.js](https://mermaid-js.github.io/mermaid/#/) diagrams.
+//!
+//! `#[aquamarine]` macro works through embedding the [mermaid.js](https://github.com/mermaid-js/mermaid) into the generated rustdoc HTML page, modifying the doc comment attributes.
+//!
+//! To inline a diagram into the documentation, use the `mermaid` snippet in a doc-string:
+//!
+//! ```rust 
+//! # use aquamarine::aquamarine
+//! #[aquamarine]
+//! /// ```mermaid
+//! /// graph LR
+//! ///     s([Source]) --> a[[aquamarine]]
+//! ///     r[[rustdoc]] --> f([Docs w/ Mermaid!])
+//! ///     subgraph rustc[Rust Compiler]
+//! ///     a -. inject mermaid.js .-> r
+//! ///     end
+//! /// ```
+//! pub fn example() {}
+//! ``` 
+//! The diagram will appear in place of the `mermaid` code block, preserving all the comments around it.
+//!
+//! You can even add multiple diagrams!
+//!
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
@@ -21,8 +47,6 @@ mod parse;
 /// /// ```
 /// struct Foo;
 /// ```
-///
-/// The demo crate [can be found here](https://docs.rs/aquamarine-demo-crate)
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn aquamarine(_args: TokenStream, input: TokenStream) -> TokenStream {

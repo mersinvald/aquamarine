@@ -1,3 +1,5 @@
+//! A demo crate for [aquamarine](https://docs.rs/aquamarine)
+
 #[aquamarine::aquamarine]
 /// A function showcasing aquamarine
 ///
