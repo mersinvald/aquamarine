@@ -29,5 +29,7 @@ The diagram will appear in place of the `mermaid` code block, preserving all the
 
 To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate) docs.rs page.
 
+![aquamarine](resources/screenshot.png)
+
 You can learn more about `mermaid.js` and what it can do in the mermaid's [documentation MdBook](https://mermaid-js.github.io/mermaid/#/)
 
