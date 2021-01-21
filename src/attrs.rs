@@ -90,7 +90,7 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
-    let mermaid_js_include = format!(r#"<script src="{}"></script>"#, MERMAID_JS);
+    let mermaid_js_include = format!(r#"<script src="{}" crossorigin="anonymous"></script>"#, MERMAID_JS);
     let body = preamble.chain(parts).chain(postamble).join("\n");
 
     quote! {
