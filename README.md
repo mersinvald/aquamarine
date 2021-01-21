@@ -13,8 +13,7 @@ that aims to improve the visual component of Rust documentation through use of t
 To inline a diagram into the documentation, use the `mermaid` snippet in a doc-string:
 
 ```rust 
-# use aquamarine::aquamarine
-#[aquamarine]
+#[cfg_attr(doc, aquamarine::aquamarine)]
 /// ```mermaid
 /// graph LR
 ///     s([Source]) --> a[[aquamarine]]
@@ -32,4 +31,3 @@ To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crat
 ![aquamarine](resources/screenshot.png)
 
 You can learn more about `mermaid.js` and what it can do in the mermaid's [documentation MdBook](https://mermaid-js.github.io/mermaid/#/)
-
