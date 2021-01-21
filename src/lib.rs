@@ -5,9 +5,9 @@
 //!
 //! To inline a diagram into the documentation, use the `mermaid` snippet in a doc-string:
 //!
-//! ```rust 
+//! ```rust
 //! # use aquamarine::aquamarine
-//! #[aquamarine]
+//! #[cfg_attr(doc, aquamarine)]
 //! /// ```mermaid
 //! /// graph LR
 //! ///     s([Source]) --> a[[aquamarine]]
@@ -17,7 +17,7 @@
 //! ///     end
 //! /// ```
 //! pub fn example() {}
-//! ``` 
+//! ```
 //! The diagram will appear in place of the `mermaid` code block, preserving all the comments around it.
 //!
 //! You can even add multiple diagrams!
