@@ -22,7 +22,7 @@
 //!
 //! You can even add multiple diagrams!
 //!
-//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.2/aquamarine_demo_crate/fn.example.html) docs.rs page.
 
 extern crate proc_macro;
 

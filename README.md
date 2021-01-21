@@ -27,7 +27,7 @@ pub fn example() {}
 ``` 
 The diagram will appear in place of the `mermaid` code block, preserving all the comments around it. You can even add multiple diagrams!
 
-To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
+To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate) docs.rs page.
 
 You can learn more about `mermaid.js` and what it can do in the mermaid's [documentation MdBook](https://mermaid-js.github.io/mermaid/#/)
 
