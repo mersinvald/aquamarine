@@ -22,7 +22,38 @@
 //!
 //! You can even add multiple diagrams!
 //!
-//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.2/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.3/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//!
+//! ### Dark-mode
+//! 
+//! Aquamarine will automatically select the `dark` theme as a default, if the current `rustdoc` theme is either `ayu` or `dark`.
+//!
+//! You might need to reload the page to redraw the diagrams after changing the theme.
+//! 
+//! ### Custom themes
+//!
+//! Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attribute.
+//! 
+//! *Note*: custom theme will override the default theme
+//!
+//! ```rust
+//! /// ```mermaid
+//! /// %%{init: {
+//! ///     'theme': 'base',
+//! ///     'themeVariables': {
+//! ///            'primaryColor': '#ffcccc', 
+//! ///            'edgeLabelBackground':'#ccccff', 
+//! ///            'tertiaryColor': '#fff0f0' }}}%%
+//! /// graph TD
+//! ///      A(Diagram needs to be drawn) --> B{Does it have 'init' annotation?}
+//! ///      B -->|No| C(Apply default theme)
+//! ///      B -->|Yes| D(Apply customized theme)
+//! /// ```
+//! ```
+//!
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.3/aquamarine_demo_crate/fn.example_with_theming.html)
+//!
+//! To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 
 extern crate proc_macro;
 

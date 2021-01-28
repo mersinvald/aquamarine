@@ -28,6 +28,39 @@ The diagram will appear in place of the `mermaid` code block, preserving all the
 
 To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate) docs.rs page.
 
-![aquamarine](resources/screenshot.png)
+![light](resources/light.png)
 
 You can learn more about `mermaid.js` and what it can do in the mermaid's [documentation MdBook](https://mermaid-js.github.io/mermaid/#/)
+
+### Dark-mode
+
+Aquamarine will automatically select the `dark` theme as a default, if the current `rustdoc` theme is either `ayu` or `dark`.
+
+You might need to reload the page to redraw the diagrams after changing the theme.
+
+![light](resources/dark.png)
+
+### Custom themes
+
+Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attribute.
+
+*Note*: custom theme will override the default theme
+
+```rust
+/// ```mermaid
+/// %%{init: {
+///     'theme': 'base',
+///     'themeVariables': {
+///            'primaryColor': '#ffcccc', 
+///            'edgeLabelBackground':'#ccccff', 
+///            'tertiaryColor': '#fff0f0' }}}%%
+/// graph TD
+///      A(Diagram needs to be drawn) --> B{Does it have 'init' annotation?}
+///      B -->|No| C(Apply default theme)
+///      B -->|Yes| D(Apply customized theme)
+/// ```
+```
+
+![custom](resources/custom.png)
+
+To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
