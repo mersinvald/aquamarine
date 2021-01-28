@@ -87,10 +87,17 @@ impl quote::ToTokens for Attrs {
 }
 
 const MERMAID_INIT_SCRIPT: &str = r#"
-    var docs_theme = currentTheme.href;
-    var amrn_dark = docs_theme.endsWith("dark.css") || docs_theme.endsWith("ayu.css") 
-    var amrn_theme = amrn_dark ? 'dark' : 'default';
-    mermaid.initialize({'startOnLoad':'true', 'theme': amrn_theme });    
+    let theme = 'default';
+    if(typeof currentTheme !== 'undefined') {
+        let docs_theme = currentTheme.href;
+        let is_dark = docs_theme.endsWith("dark.css") || docs_theme.endsWith("ayu.css") 
+        if(is_dark) {
+            theme = 'dark'
+        }
+    } else {
+        console.log("currentTheme is undefined, are we not inside rustdoc?");
+    }
+    mermaid.initialize({'startOnLoad':'true', 'theme': theme });    
 "#;
 
 fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
@@ -98,7 +105,7 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     let postamble = iter::once("</div>");
 
     let mermaid_js_include = format!(r#"<script src="{}" crossorigin="anonymous"></script>"#, MERMAID_JS);
-    let mermaid_js_init = format!(r#"<script>{}</script>"#, MERMAID_INIT_SCRIPT);
+    let mermaid_js_init = format!(r#"<script>if(window.mermaid == null) {{ {} }}</script>"#, MERMAID_INIT_SCRIPT);
     
     let body = preamble.chain(parts).chain(postamble).join("\n");
     
