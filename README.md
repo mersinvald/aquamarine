@@ -36,7 +36,7 @@ You can learn more about `mermaid.js` and what it can do in the mermaid's [docum
 
 Aquamarine will automatically select the `dark` theme as a default, if the current `rustdoc` theme is either `ayu` or `dark`.
 
-You might need to reload the page to redraw the diagrams after you change the theme to see the changes.
+You might need to reload the page to redraw the diagrams after changing the theme.
 
 ![light](resources/dark.png)
 
@@ -63,4 +63,4 @@ Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attr
 
 ![custom](resources/custom.png)
 
-To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermain.js book
+To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book

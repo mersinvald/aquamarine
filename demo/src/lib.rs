@@ -17,7 +17,8 @@
 /// The diagram is going to be located in place of the code snippet
 ///
 /// Dark mode is automatically enabled if `dark` or `ayu` rustdoc theme is selected.
-/// You might need to reload the page after the theme change in order to redraw the diagram with an updated theme.
+///
+/// You might need to reload the page to redraw the diagrams after changing the theme.
 pub fn example() {}
 
 #[cfg_attr(doc, aquamarine::aquamarine)]
@@ -36,5 +37,5 @@ pub fn example() {}
 ///      B -->|Yes| D(Apply customized theme)
 /// ```
 ///
-/// To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermain.js book
+/// To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 pub fn example_with_styling() {}
