@@ -28,7 +28,7 @@ The diagram will appear in place of the `mermaid` code block, preserving all the
 
 To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate) docs.rs page.
 
-![aquamarine](resources/screenshot.png)
+![light](resources/light.png)
 
 You can learn more about `mermaid.js` and what it can do in the mermaid's [documentation MdBook](https://mermaid-js.github.io/mermaid/#/)
 
@@ -38,7 +38,7 @@ Aquamarine will automatically select the `dark` theme as a default, if the curre
 
 You might need to reload the page to redraw the diagrams after you change the theme to see the changes.
 
-// TODO add screenshot
+![light](resources/dark.png)
 
 ### Custom themes
 
@@ -61,6 +61,6 @@ Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attr
 /// ```
 ```
 
-// TODO add screenshot
+![custom](resources/custom.png)
 
 To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermain.js book
