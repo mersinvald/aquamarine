@@ -90,7 +90,7 @@ const MERMAID_INIT_SCRIPT: &str = r#"
     var amrn_mermaid_theme = 'default';
     if(typeof currentTheme !== 'undefined') {
         let docs_theme = currentTheme.href;
-        let is_dark = docs_theme.endsWith("dark.css") || docs_theme.endsWith("ayu.css") 
+        let is_dark = /.*(dark|ayu).*\.css/.test(docs_theme)
         if(is_dark) {
             amrn_mermaid_theme = 'dark'
         }
