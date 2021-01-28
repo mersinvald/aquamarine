@@ -1,3 +1,12 @@
+<a name="0.1.6"></a>
+## 0.1.6 (2021-01-28)
+
+
+#### Bug Fixes
+
+*   use regex to detect the dark themes reliably on docs.rs ([ce24cd6e](ce24cd6e))
+
+
 <a name="0.1.5"></a>
 ## 0.1.5 (2021-01-28)
 
