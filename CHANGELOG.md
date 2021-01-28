@@ -1,5 +1,14 @@
+<a name="0.1.5"></a>
+## 0.1.5 (2021-01-28)
+
+
+#### Bug Fixes
+
+*   initialization script wasn't firing at page load ([36268718](36268718))
+
+
 <a name="0.1.4"></a>
-##  (2021-01-28)
+## 0.1.4 (2021-01-28)
 
 
 #### Features

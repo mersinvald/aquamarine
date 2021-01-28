@@ -22,7 +22,7 @@
 //!
 //! You can even add multiple diagrams!
 //!
-//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.4/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.5/aquamarine_demo_crate/fn.example.html) docs.rs page.
 //!
 //! ### Dark-mode
 //! 
@@ -51,7 +51,7 @@
 //! /// ```
 //! ```
 //!
-//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.4/aquamarine_demo_crate/fn.example_with_theming.html)
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.5/aquamarine_demo_crate/fn.example_with_theming.html)
 //!
 //! To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 
