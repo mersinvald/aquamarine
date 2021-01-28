@@ -51,7 +51,7 @@
 //! /// ```
 //! ```
 //!
-//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.5/aquamarine_demo_crate/fn.example_with_theming.html)
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.5/aquamarine_demo_crate/fn.example_with_styling.html)
 //!
 //! To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 
