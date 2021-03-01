@@ -64,3 +64,10 @@ Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attr
 ![custom](resources/custom.png)
 
 To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
+
+
+### In the wild
+
+Crates that use `aquamarine` in their documentation
+
+ - [google/autocxx](https://github.com/google/autocxx)
