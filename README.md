@@ -71,3 +71,4 @@ To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/
 Crates that use `aquamarine` in their documentation
 
  - [google/autocxx](https://github.com/google/autocxx)
+ - [replicadse/senile](https://github.com/replicadse/senile)
