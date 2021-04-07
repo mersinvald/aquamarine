@@ -21,6 +21,3 @@ syn = "1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
-
-[build-dependencies]
-fs_extra = "^1.2.0"
