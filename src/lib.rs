@@ -6,7 +6,7 @@
 //! To inline a diagram into the documentation, use the `mermaid` snippet in a doc-string:
 //!
 //! ```rust
-//! # use aquamarine::aquamarine
+//! # use aquamarine::aquamarine;
 //! #[cfg_attr(doc, aquamarine)]
 //! /// ```mermaid
 //! /// graph LR
@@ -36,7 +36,7 @@
 //! 
 //! *Note*: custom theme will override the default theme
 //!
-//! ```rust
+//! ```no_run
 //! /// ```mermaid
 //! /// %%{init: {
 //! ///     'theme': 'base',
