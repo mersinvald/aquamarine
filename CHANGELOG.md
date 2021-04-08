@@ -1,3 +1,10 @@
+<a name="0.1.8"></a>
+## 0.1.8 (2021-04-08)
+
+#### Bug Fixes
+
+*   fallback to CDN version of mermaid.js if local isn't found ([de9f274e](de9f274e))
+
 <a name="0.1.7"></a>
 ## 0.1.7 (2021-04-08)
 
