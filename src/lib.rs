@@ -1,4 +1,4 @@
-//! Aquamarine is a procedural macro extension for [rustdoc](https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html), 
+//! Aquamarine is a procedural macro extension for [rustdoc](https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html),
 //! that aims to improve the visual component of Rust documentation through use of the [mermaid.js](https://mermaid-js.github.io/mermaid/#/) diagrams.
 //!
 //! `#[aquamarine]` macro works through embedding the [mermaid.js](https://github.com/mermaid-js/mermaid) into the generated rustdoc HTML page, modifying the doc comment attributes.
@@ -25,15 +25,15 @@
 //! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.1.7/aquamarine_demo_crate/fn.example.html) docs.rs page.
 //!
 //! ### Dark-mode
-//! 
+//!
 //! Aquamarine will automatically select the `dark` theme as a default, if the current `rustdoc` theme is either `ayu` or `dark`.
 //!
 //! You might need to reload the page to redraw the diagrams after changing the theme.
-//! 
+//!
 //! ### Custom themes
 //!
 //! Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attribute.
-//! 
+//!
 //! *Note*: custom theme will override the default theme
 //!
 //! ```no_run
@@ -41,8 +41,8 @@
 //! /// %%{init: {
 //! ///     'theme': 'base',
 //! ///     'themeVariables': {
-//! ///            'primaryColor': '#ffcccc', 
-//! ///            'edgeLabelBackground':'#ccccff', 
+//! ///            'primaryColor': '#ffcccc',
+//! ///            'edgeLabelBackground':'#ccccff',
 //! ///            'tertiaryColor': '#fff0f0' }}}%%
 //! /// graph TD
 //! ///      A(Diagram needs to be drawn) --> B{Does it have 'init' annotation?}

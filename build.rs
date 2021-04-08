@@ -1,4 +1,4 @@
-use std::{ env, fs };
+use std::{env, fs};
 
 fn copy_mermaid_js() {
     let mut docs_dir = env::var("OUT_DIR").unwrap();

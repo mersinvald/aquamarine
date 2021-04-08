@@ -5,7 +5,8 @@ use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
-const MERMAID_JS: &str = "../mermaid.min.js";
+const MERMAID_JS_LOCAL: &str = "../mermaid.min.js";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@8.9.0/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
@@ -104,13 +105,16 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
-    let mermaid_js_include = format!(r#"<script src="{}"></script>"#, MERMAID_JS);
+    let mermaid_js_load_primary = format!(r#"<script src="{}"></script>"#, MERMAID_JS_LOCAL);
+    let mermaid_js_load_fallback = format!(r#"<script>window.mermaid || document.write('<script src="{}" crossorigin="anonymous"><\/script>')</script>"#, MERMAID_JS_CDN);
+
     let mermaid_js_init = format!(r#"<script>{}</script>"#, MERMAID_INIT_SCRIPT);
-    
+
     let body = preamble.chain(parts).chain(postamble).join("\n");
-    
+
     quote! {
-        #[doc = #mermaid_js_include]
+        #[doc = #mermaid_js_load_primary]
+        #[doc = #mermaid_js_load_fallback]
         #[doc = #mermaid_js_init]
         #[doc = #body]
     }
