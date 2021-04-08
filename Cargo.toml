@@ -8,6 +8,7 @@ categories = ["visualization", "development-tools::build-utils"]
 repository = "https://github.com/mersinvald/aquamarine"
 edition = "2018"
 license = "MIT"
+include = [ "doc/js/mermaid.min.js" ]
 
 [lib]
 proc-macro = true
