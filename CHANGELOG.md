@@ -1,3 +1,14 @@
+<a name="0.1.7"></a>
+## 0.1.7 (2021-04-08)
+
+#### Features
+
+*   use local version of the mermaid.js library ([8f523072](8f523072)) by [Le Savon Fou](https://github.com/lesavonfou)
+
+#### Bug Fixes
+
+*   fix doctests ([ea685563](ea685563)) by [Le Savon Fou](https://github.com/lesavonfou)
+
 <a name="0.1.6"></a>
 ## 0.1.6 (2021-01-28)
 
