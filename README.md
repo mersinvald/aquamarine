@@ -5,7 +5,7 @@
 [![docs.rs](https://docs.rs/aquamarine/badge.svg)](https://docs.rs/aquamarine)
 
 
-Aquamarine is a procedural macro extension for [rustdoc](https://github.com/mersinvald/dotfiles), 
+Aquamarine is a procedural macro extension for [rustdoc](https://doc.rust-lang.org/rustdoc/index.html), 
 that aims to improve the visual component of Rust documentation through use of the [mermaid.js](https://mermaid-js.github.io/mermaid/#/) diagrams.
 
 `#[aquamarine]` macro works through embedding the [mermaid.js](https://github.com/mermaid-js/mermaid) into the generated rustdoc HTML page, modifying the doc comment attributes.
