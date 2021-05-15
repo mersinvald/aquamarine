@@ -1,3 +1,10 @@
+<a name="0.1.9"></a>
+## 0.1.9 (2021-05-15)
+
+#### Features
+
+*   upgrade mermaid.js to 8.10.1 ([fbb13e1db](fbb13e1db)) by [José Duarte](https://github.com/jmg-duarte)
+
 <a name="0.1.8"></a>
 ## 0.1.8 (2021-04-08)
 
