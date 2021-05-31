@@ -40,9 +40,19 @@ impl Attr {
     }
 
     pub fn is_diagram_end(&self) -> bool {
-        matches!(self, Attr::DiagramEnd(_))
+        match self {
+            Attr::DiagramEnd(_) => true,
+            _ => false
+        }
     }
-
+    
+    pub fn is_diagram_start(&self) -> bool {
+        match self {
+            Attr::DiagramStart(_) => true,
+            _ => false
+        }
+    }
+    
     pub fn expect_diagram_entry_text(&self) -> &str {
         match self {
             Attr::DiagramEntry(_, body) => body.as_str(),
@@ -129,13 +139,13 @@ impl Attrs {
         let mut diagram_start_ident = None;
 
         for attr in attrs {
-            match attr.parse_meta() {
+            match &attr.parse_meta() {
                 Ok(NameValue(MetaNameValue {
                     lit: Str(s), path, ..
                 })) if path.is_ident("doc") => {
                     let ident = path.get_ident().unwrap();
                     for attr in split_attr_body(ident, &s.value(), &mut current_location) {
-                        if matches!(attr, Attr::DiagramStart(_)) {
+                        if attr.is_diagram_start() {
                             diagram_start_ident.replace(ident.clone());
                         }
                         self.0.push(attr);
@@ -165,12 +175,15 @@ enum Location {
 
 impl Location {
     fn is_inside(self) -> bool {
-        matches!(self, Location::InsideDiagram)
+        match self {
+            Location::InsideDiagram => true, 
+            _ => false
+        }
     }
 }
 
 fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> {
-    use Location::*;
+    use self::Location::*;
 
     const TICKS: &str = "```";
     const MERMAID: &str = "mermaid";
