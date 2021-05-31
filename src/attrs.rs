@@ -183,7 +183,7 @@ impl Location {
 }
 
 fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> {
-    use Location::*;
+    use self::Location::*;
 
     const TICKS: &str = "```";
     const MERMAID: &str = "mermaid";
