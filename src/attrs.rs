@@ -139,7 +139,7 @@ impl Attrs {
         let mut diagram_start_ident = None;
 
         for attr in attrs {
-            match attr.parse_meta() {
+            match &attr.parse_meta() {
                 Ok(NameValue(MetaNameValue {
                     lit: Str(s), path, ..
                 })) if path.is_ident("doc") => {
