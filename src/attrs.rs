@@ -6,7 +6,7 @@ use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
 const MERMAID_JS_LOCAL: &str = "../mermaid.min.js";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@8.10.1/dist/mermaid.min.js";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@8.13.4/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
@@ -108,7 +108,7 @@ const MERMAID_INIT_SCRIPT: &str = r#"
     } else {
         console.log("currentTheme is undefined, are we not inside rustdoc?");
     }
-    mermaid.initialize({'startOnLoad':'true', 'theme': amrn_mermaid_theme });
+    mermaid.initialize({'startOnLoad':'true', 'theme': amrn_mermaid_theme, 'logLevel': 3 });
 "#;
 
 fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
