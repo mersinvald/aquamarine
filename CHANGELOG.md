@@ -4,6 +4,15 @@
 
 #### Features
 
+*   verbose mermaid.js logging ([33746ab3](33746ab3)) by [yunhong](https://github.com/allenchou13)
+*   mermaid.js version 13.4 ([33746ab3](33746ab3)) by [yunhong](https://github.com/allenchou13)
+
+<a name="0.1.10"></a>
+## 0.1.10 (2021-05-31)
+
+
+#### Features
+
 *   lower MSRV to 1.31.1 ([2fd0f032](2fd0f032))
 
 <a name="0.1.9"></a>
