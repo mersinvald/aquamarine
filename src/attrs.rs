@@ -6,7 +6,7 @@ use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 
 const MERMAID_JS_LOCAL: &str = "../mermaid.min.js";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@8.13.4/dist/mermaid.min.js";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.1.5/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
