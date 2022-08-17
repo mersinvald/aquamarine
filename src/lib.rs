@@ -49,6 +49,7 @@
 //! ///      B -->|No| C(Apply default theme)
 //! ///      B -->|Yes| D(Apply customized theme)
 //! /// ```
+//! # fn example() {}
 //! ```
 //!
 //! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.1.11/aquamarine_demo_crate/fn.example_with_styling.html)
