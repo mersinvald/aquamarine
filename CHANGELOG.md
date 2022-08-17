@@ -1,3 +1,14 @@
+<a name="v0.1.12"></a>
+### v0.1.12 (2022-08-17)
+
+mermaid.js upgraded to version 9.1.4
+
+#### Bug Fixes
+
+*   failing doctest ([680ea555](680ea555))
+*   typo in changelog ([75419467](75419467))
+
+
 <a name="0.1.11"></a>
 ## 0.1.11 (2021-05-31)
 
