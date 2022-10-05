@@ -74,7 +74,23 @@ impl quote::ToTokens for Attrs {
         let mut attrs = self.0.iter();
         while let Some(attr) = attrs.next() {
             match attr {
-                Attr::Forward(attr) => attr.to_tokens(tokens),
+                Attr::Forward(attr) => {
+                    // check if filepath is supplied
+                    if attr.path.is_ident("path") {
+                        for token in attr.tokens.to_token_stream().into_iter() {
+                            if let proc_macro2::TokenTree::Literal(value) = token {
+                                let data =
+                                    std::fs::read_to_string(value.to_string().replace("\"", ""))
+                                        .expect("Unable to read mermaid file");
+                                tokens.extend(generate_diagram_rustdoc(
+                                    vec![data.as_str()].into_iter(),
+                                ));
+                                return ();
+                            }
+                        }
+                    }
+                    attr.to_tokens(tokens)
+                }
                 Attr::DocComment(_, comment) => tokens.extend(quote! {
                     #[doc = #comment]
                 }),
