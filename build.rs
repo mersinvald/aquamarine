@@ -13,6 +13,7 @@ fn copy_mermaid_js() {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed=./doc/**");
+    // Note: no glob-pattern supported by rerun-if-changed
+    println!("cargo:rerun-if-changed=./doc/js/mermaid.min.js");
     copy_mermaid_js();
 }
