@@ -4,8 +4,24 @@ use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
+use std::fs;
+use std::io::prelude::*;
+use std::path::Path;
 
-const MERMAID_JS_LOCAL: &str = "../mermaid.min.js";
+// embedded JS code being inserted as html script elmenets
+#[cfg(target_os = "windows")]
+const MERMAID_JS_CODE: &str = std::include_str!("..\\doc\\js\\mermaid.min.js");
+
+#[cfg(not(target_os = "windows"))]
+const MERMAID_JS_CODE: &str = std::include_str!("../doc/js/mermaid.min.js");
+
+// Note: relative path depends on sub-module the macro is invoked in.
+const MERMAID_JS_LOCAL_UP1: &str = "../mermaid.min.js";
+const MERMAID_JS_LOCAL_UP2: &str = "../../mermaid.min.js";
+const MERMAID_JS_LOCAL_UP3: &str = "../../../mermaid.min.js";
+const MERMAID_JS_LOCAL_UP4: &str = "../../../../mermaid.min.js";
+const MERMAID_JS_LOCAL_UP5: &str = "../../../../../mermaid.min.js";
+
 const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.1.5/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
@@ -113,6 +129,25 @@ impl quote::ToTokens for Attrs {
     }
 }
 
+fn place_mermaid_js() -> std::io::Result<()> {
+
+    // let mut crate_name = env::var("CARGO_CRATE_NAME").unwrap();
+
+    let docs_dir = Path::new("./target/doc");
+
+    fs::create_dir_all(&docs_dir).unwrap();
+
+    let mermaid_dst_file = docs_dir.join("mermaid.min.js");
+
+    if mermaid_dst_file.exists() {
+        Ok(())
+    } else {
+        let mut file = fs::File::create(mermaid_dst_file)?;
+        file.write_all(MERMAID_JS_CODE.as_bytes())?;
+        file.sync_all()
+    }
+}
+
 const MERMAID_INIT_SCRIPT: &str = r#"
     var amrn_mermaid_theme = 'default';
     if(typeof currentTheme !== 'undefined') {
@@ -131,15 +166,27 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
-    let mermaid_js_load_primary = format!(r#"<script src="{}"></script>"#, MERMAID_JS_LOCAL);
+    // FIXME: module path level unknown
+    let mermaid_js_load_fallback1 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP1);
+    let mermaid_js_load_fallback2 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP2);
+    let mermaid_js_load_fallback3 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP3);
+    let mermaid_js_load_fallback4 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP4);
+    let mermaid_js_load_fallback5 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP5);
     let mermaid_js_load_fallback = format!(r#"<script>window.mermaid || document.write('<script src="{}" crossorigin="anonymous"><\/script>')</script>"#, MERMAID_JS_CDN);
 
     let mermaid_js_init = format!(r#"<script>{}</script>"#, MERMAID_INIT_SCRIPT);
 
+
     let body = preamble.chain(parts).chain(postamble).join("\n");
 
+    place_mermaid_js().unwrap();
+
     quote! {
-        #[doc = #mermaid_js_load_primary]
+        #[doc = #mermaid_js_load_fallback1]
+        #[doc = #mermaid_js_load_fallback2]
+        #[doc = #mermaid_js_load_fallback3]
+        #[doc = #mermaid_js_load_fallback4]
+        #[doc = #mermaid_js_load_fallback5]
         #[doc = #mermaid_js_load_fallback]
         #[doc = #mermaid_js_init]
         #[doc = #body]
