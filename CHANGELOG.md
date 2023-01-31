@@ -1,3 +1,14 @@
+<a name="v0.2.0"></a>
+## v0.2.0 (2023-01-31)
+
+#### Bug Fixes
+
+*   embedding broken when dependants are built with `--no-deps` [06e263b3](06e263b3) by [frehberg](https://github.com/frehberg)
+
+#### Features
+
+*   allow loading diagrams from filesystem via macro attrs [0eb7e08f](0eb7e08f) by [drbh](https://github.com/drbh)
+
 <a name="v0.1.12"></a>
 ### v0.1.12 (2022-08-17)
 
