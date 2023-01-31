@@ -66,6 +66,27 @@ Theming is supported on per-diagram basis, through the mermaid's `%%init%%` attr
 
 To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 
+### Separating diagrams from code
+
+A diagram can be loaded from file to reduce clutter in the documentation comments.
+
+Such diagram will always be placed under the rest of the document section. 
+Reading diagrams from file can be combined with placing them into the doc-comment, to get multiple diagrams describing a single entity, however only one can be placed inside the file. (FIXME).
+
+```rust
+#[cfg_attr(doc, aquamarine::aquamarine, path = "./diagram.mermaid")]
+pub fn example_foad_from_file() {}
+```
+
+```bash
+# diagram.mermaid
+graph LR
+    s([Source]) --> a[[aquamarine]]
+    r[[rustdoc]] --> f([Docs w/ Mermaid!])
+    subgraph rustc[Rust Compiler]
+    a -. load diagram.mermaid .-> r
+    end
+```
 
 ### In the wild
 
@@ -73,3 +94,6 @@ Crates that use `aquamarine` in their documentation
 
  - [google/autocxx](https://github.com/google/autocxx)
  - [replicadse/senile](https://github.com/replicadse/senile)
+ - [teloxide](https://github.com/teloxide/teloxide)
+ 
+[and other](https://crates.io/crates/aquamarine/reverse_dependencies)

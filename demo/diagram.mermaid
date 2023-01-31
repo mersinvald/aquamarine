@@ -1,0 +1,6 @@
+graph LR
+    s([Source]) --> a[[aquamarine]]
+    r[[rustdoc]] --> f([Docs w/ Mermaid!])
+    subgraph rustc[Rust Compiler]
+    a -. load diagram.mermaid .-> r
+    end

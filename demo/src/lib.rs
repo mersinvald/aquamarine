@@ -39,3 +39,11 @@ pub fn example() {}
 ///
 /// To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 pub fn example_with_styling() {}
+
+#[cfg_attr(doc, aquamarine::aquamarine, path = "./diagram.mermaid")]
+/// A diagram can be loaded from a file as well!
+/// 
+/// Reduce clutter in your doc comments, when a diagram is big enough
+///
+/// **Note:** diagrams loaded form file are always placed in the bottom of the doc section
+pub fn example_foad_from_file() {}
