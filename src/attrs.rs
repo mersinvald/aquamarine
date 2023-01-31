@@ -22,7 +22,7 @@ const MERMAID_JS_LOCAL_UP3: &str = "../../../mermaid.min.js";
 const MERMAID_JS_LOCAL_UP4: &str = "../../../../mermaid.min.js";
 const MERMAID_JS_LOCAL_UP5: &str = "../../../../../mermaid.min.js";
 
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.1.5/dist/mermaid.min.js";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.3.0/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
