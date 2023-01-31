@@ -88,6 +88,7 @@ impl From<Vec<Attribute>> for Attrs {
 impl quote::ToTokens for Attrs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mut attrs = self.0.iter();
+        let mut loaded_from_file = None;
         while let Some(attr) = attrs.next() {
             match attr {
                 Attr::Forward(attr) => {
@@ -98,10 +99,9 @@ impl quote::ToTokens for Attrs {
                                 let data =
                                     std::fs::read_to_string(value.to_string().replace("\"", ""))
                                         .expect("Unable to read mermaid file");
-                                tokens.extend(generate_diagram_rustdoc(
+                                loaded_from_file = Some(generate_diagram_rustdoc(
                                     vec![data.as_str()].into_iter(),
                                 ));
-                                return ();
                             }
                         }
                     }
@@ -125,6 +125,10 @@ impl quote::ToTokens for Attrs {
                 }
                 Attr::DiagramEnd(_) => (),
             }
+        }
+
+        if let Some(diagram) = loaded_from_file {
+            tokens.extend(diagram)
         }
     }
 }
