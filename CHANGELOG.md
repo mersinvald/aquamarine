@@ -1,3 +1,10 @@
+<a name="v0.2.1"></a>
+### v0.2.1 (2023-02-01)
+
+#### Maintenance 
+
+*   MermaidJS updated to version 9.3.0 
+
 <a name="v0.2.0"></a>
 ## v0.2.0 (2023-01-31)
 
