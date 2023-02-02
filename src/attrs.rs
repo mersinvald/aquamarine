@@ -183,7 +183,9 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
 
     let body = preamble.chain(parts).chain(postamble).join("\n");
 
-    place_mermaid_js().unwrap();
+    place_mermaid_js().unwrap_or_else(|e| {
+        eprintln!("failed to place mermaid.js on the filesystem: {}", e);
+    });
 
     quote! {
         #[doc = #mermaid_js_load_fallback1]
