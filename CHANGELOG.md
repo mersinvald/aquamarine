@@ -1,3 +1,10 @@
+<a name="v0.2.2"></a>
+### v0.2.2 (2023-02-02)
+
+#### Bug Fixes
+
+*   gracefully handle failure to write mermaid.js files ([514c67c9](514c67c9))
+
 <a name="v0.2.1"></a>
 ### v0.2.1 (2023-02-01)
 
