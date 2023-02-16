@@ -1,3 +1,10 @@
+<a name="v0.3.0"></a>
+### v0.3.0 (2023-02-16)
+
+#### Maintenance
+
+*   update dependencies
+
 <a name="v0.2.2"></a>
 ### v0.2.2 (2023-02-02)
 

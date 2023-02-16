@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/d/aquamarine)](https://crates.io/crates/aquamarine)
 [![docs.rs](https://docs.rs/aquamarine/badge.svg)](https://docs.rs/aquamarine)
 
-*Compiler support: this crate requires rustc 1.31.1 or newer*
+*Compiler support: this crate requires rustc 1.38.0 or newer*
 
 Aquamarine is a procedural macro extension for [rustdoc](https://doc.rust-lang.org/rustdoc/index.html), 
 that aims to improve the visual component of Rust documentation through use of the [mermaid.js](https://mermaid-js.github.io/mermaid/#/) diagrams.
