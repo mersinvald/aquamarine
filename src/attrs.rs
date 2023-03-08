@@ -150,7 +150,7 @@ fn place_mermaid_js() -> std::io::Result<()> {
 const MERMAID_INIT_SCRIPT: &str = r#"
     const mermaidScriptFile = "{mermaidScriptFile}";
     const fallbackUrl = "{fallbackUrl}";
-    const mermaidScriptId = "mermaid-script-load"
+    const mermaidScriptId = "mermaid-script-load";
     const rustdocVarsId= "rustdoc-vars";
     const dataRootPathAttr = "data-root-path";
 
