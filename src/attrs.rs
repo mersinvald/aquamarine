@@ -16,12 +16,7 @@ const MERMAID_JS_CODE: &str = std::include_str!("..\\doc\\js\\mermaid.min.js");
 const MERMAID_JS_CODE: &str = std::include_str!("../doc/js/mermaid.min.js");
 
 // Note: relative path depends on sub-module the macro is invoked in.
-const MERMAID_JS_LOCAL_UP1: &str = "../mermaid.min.js";
-const MERMAID_JS_LOCAL_UP2: &str = "../../mermaid.min.js";
-const MERMAID_JS_LOCAL_UP3: &str = "../../../mermaid.min.js";
-const MERMAID_JS_LOCAL_UP4: &str = "../../../../mermaid.min.js";
-const MERMAID_JS_LOCAL_UP5: &str = "../../../../../mermaid.min.js";
-
+const MERMAID_JS_LOCAL: &str = "mermaid.min.js";
 const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.3.0/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
@@ -153,32 +148,72 @@ fn place_mermaid_js() -> std::io::Result<()> {
 }
 
 const MERMAID_INIT_SCRIPT: &str = r#"
-    var amrn_mermaid_theme = 'default';
-    if(typeof currentTheme !== 'undefined') {
-        let docs_theme = currentTheme.href;
-        let is_dark = /.*(dark|ayu).*\.css/.test(docs_theme)
-        if(is_dark) {
-            amrn_mermaid_theme = 'dark'
+    const mermaidScriptFile = "{mermaidScriptFile}";
+    const fallbackUrl = "{fallbackUrl}";
+    const mermaidScriptId = "mermaid-script-load"
+    const rustdocVarsId= "rustdoc-vars";
+    const dataRootPathAttr = "data-root-path";
+
+    function scriptLocation() {
+         // element being defined for each rustdoc html file
+    	const rustdocVarsElem = document.getElementById(rustdocVarsId);
+    	if (rustdocVarsElem === null) {
+    	   console.warn("expected element with id #%s", rustdocVarsId);
+    	   return fallbackUrl;
+    	}
+
+    	const rootPath = rustdocVarsElem.attributes[dataRootPathAttr];
+    	if (rootPath === null) {
+    	   console.warn("expected attribute %s at element with id #%s",
+    	      dataRootPathAttr,
+    	      rustdocVarsId);
+    	   return fallbackUrl;
         }
-    } else {
-        console.log("currentTheme is undefined, are we not inside rustdoc?");
+        return 	rootPath.value + "/" +  mermaidScriptFile;
     }
-    mermaid.initialize({'startOnLoad':'true', 'theme': amrn_mermaid_theme, 'logLevel': 3 });
+
+    function scriptLoaded() {
+      console.log("Initializing mermaid");
+
+      var amrn_mermaid_theme = 'default';
+      if(typeof currentTheme !== 'undefined') {
+         let docs_theme = currentTheme.href;
+         let is_dark = /.*(dark|ayu).*\.css/.test(docs_theme)
+         if(is_dark) {
+           amrn_mermaid_theme = 'dark'
+         }
+      } else {
+         console.log("currentTheme is undefined, are we not inside rustdoc?");
+      }
+      mermaid.initialize({
+        'startOnLoad':'true',
+        'theme': amrn_mermaid_theme,
+        'logLevel': 3 });
+    }
+
+    if (document.getElementById(mermaidScriptId) != null) {
+      console.log('Prevent adding twice mermaid script dependency');
+    } else {
+      console.log('Appending mermaid script dependency');
+      // element being defined for each rustdoc html file
+      // dynamically append script element to document body
+      let myScript = document.createElement("script");
+      myScript.setAttribute("src", scriptLocation());
+      myScript.setAttribute("id", mermaidScriptId);
+      document.body.appendChild(myScript);
+      myScript.addEventListener("load", scriptLoaded, false);
+   }
 "#;
 
 fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
-    // FIXME: module path level unknown
-    let mermaid_js_load_fallback1 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP1);
-    let mermaid_js_load_fallback2 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP2);
-    let mermaid_js_load_fallback3 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP3);
-    let mermaid_js_load_fallback4 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP4);
-    let mermaid_js_load_fallback5 = format!(r#"<script>window.mermaid || document.write('<script src="{}"><\/script>')</script>"#, MERMAID_JS_LOCAL_UP5);
-    let mermaid_js_load_fallback = format!(r#"<script>window.mermaid || document.write('<script src="{}" crossorigin="anonymous"><\/script>')</script>"#, MERMAID_JS_CDN);
 
-    let mermaid_js_init = format!(r#"<script>{}</script>"#, MERMAID_INIT_SCRIPT);
+    let mermaid_js_init = format!(r#"<script type="module">{}</script>"#,
+                                  MERMAID_INIT_SCRIPT
+                                   .replace("{mermaidScriptFile}", MERMAID_JS_LOCAL)
+                                   .replace("{fallbackUrl}", MERMAID_JS_CDN));
 
 
     let body = preamble.chain(parts).chain(postamble).join("\n");
@@ -188,12 +223,6 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenSt
     });
 
     quote! {
-        #[doc = #mermaid_js_load_fallback1]
-        #[doc = #mermaid_js_load_fallback2]
-        #[doc = #mermaid_js_load_fallback3]
-        #[doc = #mermaid_js_load_fallback4]
-        #[doc = #mermaid_js_load_fallback5]
-        #[doc = #mermaid_js_load_fallback]
         #[doc = #mermaid_js_init]
         #[doc = #body]
     }
