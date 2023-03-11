@@ -167,13 +167,13 @@ const MERMAID_INIT_SCRIPT: &str = r#"
 		for(var elem of document.getElementsByClassName("mermaid")) {
 			 elem.innerHTML =
 			 `<div> <mark>
-			  &#9888; Cannot render diagram! Failed to import module from local file and remote location also!
+			  &#9888; Cannot render diagram! Failed to import module from local
+			  file and remote location also!
 			  Either access the rustdocs via HTTP/S using a
 			  <a href="https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Tools_and_setup/set_up_a_local_testing_server">
 			   local web server
 			  </a>, for example:
-			  <br>
-			   python3 -m http.server --directory target/doc/, or enable local file access in your
+			   python3 -m http.server --directory target/doc/, <br> or enable local file access in your
 			   Safari/Firefox/Chrome browser, for example
 			  starting Chrome with flag '--allow-file-access-from-files'.
 			  </mark></div> `;
