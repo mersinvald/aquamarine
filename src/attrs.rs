@@ -5,19 +5,22 @@ use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 use std::fs;
+use std::io::Cursor;
 use std::io::prelude::*;
 use std::path::Path;
 
 // embedded JS code being inserted as html script elmenets
 #[cfg(target_os = "windows")]
-const MERMAID_JS_CODE: &str = std::include_str!("..\\doc\\js\\mermaid.min.js");
+const MERMAID_JS_CODE: &[u8] = std::include_bytes!("..\\doc\\js\\mermaid.esm.min.mjs.zip");
 
 #[cfg(not(target_os = "windows"))]
-const MERMAID_JS_CODE: &str = std::include_str!("../doc/js/mermaid.min.js");
+const MERMAID_JS_CODE: &[u8] = std::include_bytes!("../doc/js/mermaid.esm.min.mjs.zip");
 
-// Note: relative path depends on sub-module the macro is invoked in.
-const MERMAID_JS_LOCAL: &str = "mermaid.min.js";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.3.0/dist/mermaid.min.js";
+// Note: relative path depends on sub-module the macro is invoked in:
+//  base=document.getElementById("rustdoc-vars").attributes["data-root-path"]
+const MERMAID_JS_LOCAL: &str = "static.files.mermaid/mermaid.esm.min.mjs";
+const MERMAID_JS_LOCAL_DIR: &str = "static.files.mermaid";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@10.0.2/dist/mermaid.esm.min.mjs";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
@@ -56,14 +59,14 @@ impl Attr {
             _ => false
         }
     }
-    
+
     pub fn is_diagram_start(&self) -> bool {
         match self {
             Attr::DiagramStart(_) => true,
             _ => false
         }
     }
-    
+
     pub fn expect_diagram_entry_text(&self) -> &str {
         match self {
             Attr::DiagramEntry(_, body) => body.as_str(),
@@ -71,7 +74,6 @@ impl Attr {
         }
     }
 }
-
 impl From<Vec<Attribute>> for Attrs {
     fn from(attrs: Vec<Attribute>) -> Self {
         let mut out = Attrs::default();
@@ -129,91 +131,85 @@ impl quote::ToTokens for Attrs {
 }
 
 fn place_mermaid_js() -> std::io::Result<()> {
-
-    // let mut crate_name = env::var("CARGO_CRATE_NAME").unwrap();
-
     let docs_dir = Path::new("./target/doc");
-
-    fs::create_dir_all(&docs_dir).unwrap();
-
-    let mermaid_dst_file = docs_dir.join("mermaid.min.js");
-
-    if mermaid_dst_file.exists() {
+    let static_files_mermaid_dir = docs_dir.join(MERMAID_JS_LOCAL_DIR);
+    if static_files_mermaid_dir.exists() {
         Ok(())
     } else {
-        let mut file = fs::File::create(mermaid_dst_file)?;
-        file.write_all(MERMAID_JS_CODE.as_bytes())?;
-        file.sync_all()
+        fs::create_dir_all(&static_files_mermaid_dir).unwrap();
+        let mut zip = zip::ZipArchive::new(Cursor::new(MERMAID_JS_CODE)).unwrap();
+        zip.extract(static_files_mermaid_dir)?;
+        Ok(())
     }
 }
 
 const MERMAID_INIT_SCRIPT: &str = r#"
-    const mermaidScriptFile = "{mermaidScriptFile}";
-    const fallbackUrl = "{fallbackUrl}";
-    const mermaidScriptId = "mermaid-script-load";
+    const mermaidModuleFile = "{mermaidModuleFile}";
+    const fallbackRemoteUrl = "{fallbackRemoteUrl}";
     const rustdocVarsId= "rustdoc-vars";
     const dataRootPathAttr = "data-root-path";
 
-    function scriptLocation() {
-         // element being defined for each rustdoc html file
-    	const rustdocVarsElem = document.getElementById(rustdocVarsId);
-    	if (rustdocVarsElem === null) {
-    	   console.warn("expected element with id #%s", rustdocVarsId);
-    	   return fallbackUrl;
-    	}
 
-    	const rootPath = rustdocVarsElem.attributes[dataRootPathAttr];
-    	if (rootPath === null) {
-    	   console.warn("expected attribute %s at element with id #%s",
-    	      dataRootPathAttr,
-    	      rustdocVarsId);
-    	   return fallbackUrl;
-        }
-        return 	rootPath.value + "/" +  mermaidScriptFile;
-    }
+    function initializeMermaid(mermaid) {
+     var amrn_mermaid_theme =
+         window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+         ? 'dark'
+         : 'default';
 
-    function scriptLoaded() {
-      console.log("Initializing mermaid");
-
-      var amrn_mermaid_theme = 'default';
-      if(typeof currentTheme !== 'undefined') {
-         let docs_theme = currentTheme.href;
-         let is_dark = /.*(dark|ayu).*\.css/.test(docs_theme)
-         if(is_dark) {
-           amrn_mermaid_theme = 'dark'
-         }
-      } else {
-         console.log("currentTheme is undefined, are we not inside rustdoc?");
-      }
       mermaid.initialize({
         'startOnLoad':'true',
         'theme': amrn_mermaid_theme,
         'logLevel': 3 });
+      mermaid.run();
     }
 
-    if (document.getElementById(mermaidScriptId) != null) {
-      console.log('Prevent adding twice mermaid script dependency');
-    } else {
-      console.log('Appending mermaid script dependency');
-      // element being defined for each rustdoc html file
-      // dynamically append script element to document body
-      let myScript = document.createElement("script");
-      myScript.setAttribute("src", scriptLocation());
-      myScript.setAttribute("id", mermaidScriptId);
-      document.body.appendChild(myScript);
-      myScript.addEventListener("load", scriptLoaded, false);
-   }
+	function failedToLoadWarnings() {
+		for(var elem of document.getElementsByClassName("mermaid")) {
+			 elem.innerHTML =
+			 `<div> <mark>
+			  &#9888; Cannot render diagram! Failed to import module from local file and remote location also!
+			  Either access rustdocs vie HTTP/S or enable local file access in browsers Safari/Firefox, or
+			  start Chrome with flag '--allow-file-access-from-files'.
+			  Otherwise access the rustdoc pages using a
+			  <a href="https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Tools_and_setup/set_up_a_local_testing_server"> local web server</a>.
+			  </mark></div> `;
+		}
+	}
+
+    // If rustdoc is read from file directly, the import of mermaid module
+    // from file will fail. In this case falling back to remote location.
+    // If neither succeeds, the mermaid markdown is replaced by notice to
+    // enable file acecss in browser.
+    try {
+       var rootPath = document
+         .getElementById(rustdocVarsId)
+         .attributes[dataRootPathAttr]
+         .value;
+       const {
+         default: mermaid,
+       } = await import(rootPath + mermaidModuleFile);
+	   initializeMermaid(mermaid);
+    } catch (e) {
+       try {
+         const {
+            default: mermaid,
+         } = await import(fallbackRemoteUrl);
+	     initializeMermaid(mermaid);
+       } catch (e) {
+		 failedToLoadWarnings();
+	   }
+    }
 "#;
 
-fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
+fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item=&'a str>) -> TokenStream {
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
 
     let mermaid_js_init = format!(r#"<script type="module">{}</script>"#,
                                   MERMAID_INIT_SCRIPT
-                                   .replace("{mermaidScriptFile}", MERMAID_JS_LOCAL)
-                                   .replace("{fallbackUrl}", MERMAID_JS_CDN));
+                                      .replace("{mermaidModuleFile}", MERMAID_JS_LOCAL)
+                                      .replace("{fallbackRemoteUrl}", MERMAID_JS_CDN));
 
 
     let body = preamble.chain(parts).chain(postamble).join("\n");
@@ -239,8 +235,8 @@ impl Attrs {
         for attr in attrs {
             match &attr.parse_meta() {
                 Ok(NameValue(MetaNameValue {
-                    lit: Str(s), path, ..
-                })) if path.is_ident("doc") => {
+                                 lit: Str(s), path, ..
+                             })) if path.is_ident("doc") => {
                     let ident = path.get_ident().unwrap();
                     for attr in split_attr_body(ident, &s.value(), &mut current_location) {
                         if attr.is_diagram_start() {
@@ -274,7 +270,7 @@ enum Location {
 impl Location {
     fn is_inside(self) -> bool {
         match self {
-            Location::InsideDiagram => true, 
+            Location::InsideDiagram => true,
             _ => false
         }
     }
@@ -348,7 +344,7 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
     ctx.attrs
 }
 
-fn tokenize_doc_str(input: &str) -> impl Iterator<Item = &str> {
+fn tokenize_doc_str(input: &str) -> impl Iterator<Item=&str> {
     const TICKS: &str = "```";
     split_inclusive(input, TICKS).flat_map(|token| {
         // not str::split_whitespace because we don't wanna filter-out the whitespace tokens
@@ -357,7 +353,7 @@ fn tokenize_doc_str(input: &str) -> impl Iterator<Item = &str> {
 }
 
 // TODO: remove once str::split_inclusive is stable
-fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<Item = &'a str> {
+fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<Item=&'a str> {
     let mut tokens = vec![];
     let mut prev = 0;
 
@@ -422,7 +418,7 @@ mod tests {
     fn temp_split_inclusive() {
         let src = "```";
         let out: Vec<_> = split_inclusive(src, "```").collect();
-        assert_eq!(&out, &["```",]);
+        assert_eq!(&out, &["```", ]);
 
         let src = "```abcd```";
         let out: Vec<_> = split_inclusive(src, "```").collect();
@@ -430,7 +426,7 @@ mod tests {
 
         let src = "left```abcd```right";
         let out: Vec<_> = split_inclusive(src, "```").collect();
-        assert_eq!(&out, &["left", "```", "abcd", "```", "right",]);
+        assert_eq!(&out, &["left", "```", "abcd", "```", "right", ]);
     }
 
     mod split_attr_body_tests {
