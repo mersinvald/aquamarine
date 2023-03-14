@@ -17,7 +17,7 @@ const MERMAID_JS_CODE: &str = std::include_str!("../doc/js/mermaid.min.js");
 
 // Note: relative path depends on sub-module the macro is invoked in.
 const MERMAID_JS_LOCAL: &str = "mermaid.min.js";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@9.3.0/dist/mermaid.min.js";
+const MERMAID_JS_CDN: &str = "https://cdn.jsdelivr.net/npm/mermaid@10.0.3-alpha.1/dist/mermaid.min.js";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
@@ -129,9 +129,6 @@ impl quote::ToTokens for Attrs {
 }
 
 fn place_mermaid_js() -> std::io::Result<()> {
-
-    // let mut crate_name = env::var("CARGO_CRATE_NAME").unwrap();
-
     let docs_dir = Path::new("./target/doc");
 
     fs::create_dir_all(&docs_dir).unwrap();
@@ -155,7 +152,7 @@ const MERMAID_INIT_SCRIPT: &str = r#"
     const dataRootPathAttr = "data-root-path";
 
     function scriptLocation() {
-         // element being defined for each rustdoc html file
+        // element being defined for each rustdoc html file
     	const rustdocVarsElem = document.getElementById(rustdocVarsId);
     	if (rustdocVarsElem === null) {
     	   console.warn("expected element with id #%s", rustdocVarsId);
@@ -175,34 +172,29 @@ const MERMAID_INIT_SCRIPT: &str = r#"
     function scriptLoaded() {
       console.log("Initializing mermaid");
 
-      var amrn_mermaid_theme = 'default';
-      if(typeof currentTheme !== 'undefined') {
-         let docs_theme = currentTheme.href;
-         let is_dark = /.*(dark|ayu).*\.css/.test(docs_theme)
-         if(is_dark) {
-           amrn_mermaid_theme = 'dark'
-         }
-      } else {
-         console.log("currentTheme is undefined, are we not inside rustdoc?");
-      }
+      var amrn_mermaid_theme =
+         window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+           ? 'dark'
+           : 'default';
       mermaid.initialize({
         'startOnLoad':'true',
         'theme': amrn_mermaid_theme,
         'logLevel': 3 });
     }
 
-    if (document.getElementById(mermaidScriptId) != null) {
-      console.log('Prevent adding twice mermaid script dependency');
-    } else {
-      console.log('Appending mermaid script dependency');
-      // element being defined for each rustdoc html file
-      // dynamically append script element to document body
-      let myScript = document.createElement("script");
-      myScript.setAttribute("src", scriptLocation());
-      myScript.setAttribute("id", mermaidScriptId);
-      document.body.appendChild(myScript);
-      myScript.addEventListener("load", scriptLoaded, false);
-   }
+    function useFallbackLocation() {
+        console.warn("loading from file failed, using fallback URL ", fallbackUrl);
+        let myScript = document.createElement("script");
+        myScript.setAttribute("src", fallbackUrl);
+        document.body.appendChild(myScript);
+        myScript.addEventListener("load", scriptLoaded, false);
+    }
+
+    let myScript = document.createElement("script");
+    myScript.setAttribute("src", scriptLocation());
+    document.body.appendChild(myScript);
+    myScript.addEventListener("load", scriptLoaded, false);
+    myScript.addEventListener("error", useFallbackLocation, false);
 "#;
 
 fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
