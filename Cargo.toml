@@ -19,6 +19,6 @@ proc-macro2 = "1"
 proc-macro-error = "1"
 itertools = "0.10"
 syn = "1"
-zip = { version = "^0.6", features = ["deflate"] }
+include_dir = "0.7"
 [dev-dependencies]
 pretty_assertions = "1"

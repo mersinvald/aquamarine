@@ -5,15 +5,15 @@ use quote::quote;
 use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 use std::fs;
-use std::io::Cursor;
 use std::path::Path;
+use include_dir::{include_dir, Dir};
 
 // embedded JS code being inserted as html script elmenets
 #[cfg(target_os = "windows")]
-const MERMAID_JS_CODE: &[u8] = std::include_bytes!("..\\doc\\js\\mermaid.esm.min.mjs.zip");
+static MERMAID_JS_DIR: Dir = include_dir!("..\\doc\\js\\");
 
 #[cfg(not(target_os = "windows"))]
-const MERMAID_JS_CODE: &[u8] = std::include_bytes!("../doc/js/mermaid.esm.min.mjs.zip");
+static MERMAID_JS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/doc/js/");
 
 // Note: relative path depends on sub-module the macro is invoked in:
 //  base=document.getElementById("rustdoc-vars").attributes["data-root-path"]
@@ -140,8 +140,7 @@ fn place_mermaid_js() -> std::io::Result<()> {
             Ok(())
         } else {
             fs::create_dir_all(&static_files_mermaid_dir).unwrap();
-            let mut zip = zip::ZipArchive::new(Cursor::new(MERMAID_JS_CODE)).unwrap();
-            zip.extract(static_files_mermaid_dir)?;
+            MERMAID_JS_DIR.extract(static_files_mermaid_dir)?;
             Ok(())
         }
     } else {
