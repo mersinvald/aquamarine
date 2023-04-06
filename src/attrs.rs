@@ -20,7 +20,7 @@ const MERMAID_JS_CODE: &[u8] = std::include_bytes!("../doc/js/mermaid.esm.min.mj
 //  base=document.getElementById("rustdoc-vars").attributes["data-root-path"]
 const MERMAID_JS_LOCAL: &str = "static.files.mermaid/mermaid.esm.min.mjs";
 const MERMAID_JS_LOCAL_DIR: &str = "static.files.mermaid";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@10.0.2/dist/mermaid.esm.min.mjs";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@10/dist/mermaid.esm.min.mjs";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
