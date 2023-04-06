@@ -6,7 +6,6 @@ use std::iter;
 use syn::{Attribute, Ident, MetaNameValue};
 use std::fs;
 use std::io::Cursor;
-use std::io::prelude::*;
 use std::path::Path;
 
 // embedded JS code being inserted as html script elmenets
@@ -131,14 +130,22 @@ impl quote::ToTokens for Attrs {
 }
 
 fn place_mermaid_js() -> std::io::Result<()> {
-    let docs_dir = Path::new("./target/doc");
-    let static_files_mermaid_dir = docs_dir.join(MERMAID_JS_LOCAL_DIR);
-    if static_files_mermaid_dir.exists() {
-        Ok(())
+    let target_dir = std::env::var("CARGO_TARGET_DIR")
+        .unwrap_or("./target".to_string());
+    let docs_dir = Path::new(&target_dir).join("doc");
+    // extract mermaid module iff rustdoc folder exists already
+    if docs_dir.exists() {
+        let static_files_mermaid_dir = docs_dir.join(MERMAID_JS_LOCAL_DIR);
+        if static_files_mermaid_dir.exists() {
+            Ok(())
+        } else {
+            fs::create_dir_all(&static_files_mermaid_dir).unwrap();
+            let mut zip = zip::ZipArchive::new(Cursor::new(MERMAID_JS_CODE)).unwrap();
+            zip.extract(static_files_mermaid_dir)?;
+            Ok(())
+        }
     } else {
-        fs::create_dir_all(&static_files_mermaid_dir).unwrap();
-        let mut zip = zip::ZipArchive::new(Cursor::new(MERMAID_JS_CODE)).unwrap();
-        zip.extract(static_files_mermaid_dir)?;
+        // no rustdocs rendering
         Ok(())
     }
 }
