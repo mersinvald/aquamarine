@@ -1,3 +1,15 @@
+<a name="v0.3.1"></a>
+### v0.3.1 (2023-04-17)
+
+#### Features
+
+*   mermaid is updated to v10 (PR #46 by [frehberg](https://github.com/frehberg))
+*   better handling of a failure to load mermaidjs (PR #46 by [frehberg](https://github.com/frehberg))
+
+#### Miscellaneous
+
+*   add Frehberg as a maintainer on GitHub, and package owner on Crates.io
+
 <a name="v0.3.0"></a>
 ### v0.3.0 (2023-02-16)
 
