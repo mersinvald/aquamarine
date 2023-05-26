@@ -9,10 +9,6 @@ use std::path::Path;
 use include_dir::{include_dir, Dir};
 
 // embedded JS code being inserted as html script elmenets
-#[cfg(target_os = "windows")]
-static MERMAID_JS_DIR: Dir = include_dir!("..\\doc\\js\\");
-
-#[cfg(not(target_os = "windows"))]
 static MERMAID_JS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/doc/js/");
 
 // Note: relative path depends on sub-module the macro is invoked in:
