@@ -99,7 +99,7 @@ pub fn aquamarine(_args: TokenStream, input: TokenStream) -> TokenStream {
 
 fn check_input_attrs(input: &[Attribute]) {
     for attr in input {
-        if attr.path.is_ident("aquamarine") {
+        if attr.path().is_ident("aquamarine") {
             abort!(
                 attr,
                 "multiple `aquamarine` attributes on one entity are illegal"

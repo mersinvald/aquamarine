@@ -40,7 +40,7 @@ pub enum Attr {
 impl Attr {
     pub fn as_ident(&self) -> Option<&Ident> {
         match self {
-            Attr::Forward(attr) => attr.path.get_ident(),
+            Attr::Forward(attr) => attr.path().get_ident(),
             Attr::DocComment(ident, _) => Some(ident),
             Attr::DiagramStart(ident) => Some(ident),
             Attr::DiagramEntry(ident, _) => Some(ident),
@@ -85,15 +85,17 @@ impl quote::ToTokens for Attrs {
             match attr {
                 Attr::Forward(attr) => {
                     // check if filepath is supplied
-                    if attr.path.is_ident("path") {
-                        for token in attr.tokens.to_token_stream().into_iter() {
-                            if let proc_macro2::TokenTree::Literal(value) = token {
-                                let data =
-                                    std::fs::read_to_string(value.to_string().replace("\"", ""))
-                                        .expect("Unable to read mermaid file");
-                                loaded_from_file = Some(generate_diagram_rustdoc(
-                                    vec![data.as_str()].into_iter(),
-                                ));
+                    if attr.path().is_ident("path") {
+                        if let syn::Meta::List(ref ml) = attr.meta {
+                            for token in ml.tokens.to_token_stream().into_iter() {
+                                if let proc_macro2::TokenTree::Literal(value) = token {
+                                    let data =
+                                        std::fs::read_to_string(value.to_string().replace("\"", ""))
+                                            .expect("Unable to read mermaid file");
+                                    loaded_from_file = Some(generate_diagram_rustdoc(
+                                        vec![data.as_str()].into_iter(),
+                                    ));
+                                }
                             }
                         }
                     }
@@ -234,16 +236,17 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item=&'a str>) -> TokenStre
 impl Attrs {
     pub fn push_attrs(&mut self, attrs: Vec<Attribute>) {
         use syn::Lit::*;
-        use syn::Meta::*;
+        use syn::Expr;
+        use syn::ExprLit;
 
         let mut current_location = Location::OutsideDiagram;
         let mut diagram_start_ident = None;
 
         for attr in attrs {
-            match &attr.parse_meta() {
-                Ok(NameValue(MetaNameValue {
-                                 lit: Str(s), path, ..
-                             })) if path.is_ident("doc") => {
+            match attr.meta.require_name_value() {
+                Ok(MetaNameValue {
+                                 value: Expr::Lit(ExprLit {lit: Str(s), .. }), path, ..
+                             }) if path.is_ident("doc") => {
                     let ident = path.get_ident().unwrap();
                     for attr in split_attr_body(ident, &s.value(), &mut current_location) {
                         if attr.is_diagram_start() {
