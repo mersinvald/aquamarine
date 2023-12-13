@@ -9,5 +9,5 @@ edition = "2018"
 license = "MIT"
 
 [dependencies.aquamarine]
-version = "0.3.1"
+version = "0.3.3"
 path = "../"
