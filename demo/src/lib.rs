@@ -40,10 +40,16 @@ pub fn example() {}
 /// To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 pub fn example_with_styling() {}
 
-#[cfg_attr(doc, aquamarine::aquamarine, path = "./diagram.mermaid")]
+#[cfg_attr(doc, aquamarine::aquamarine)]
 /// A diagram can be loaded from a file as well!
 /// 
-/// Reduce clutter in your doc comments, when a diagram is big enough
+/// include_mmd!("diagram_0.mmd")
+/// 
+/// Reduce clutter in your doc comments, when a diagram is big enough.
+/// 
+/// You can include multiple diagrams in a single doc comment, using the macro-like syntax `include_mmd!("/path/to/diagram.mmd")`
+/// 
+/// include_mmd!(diagram_1.mmd)
 ///
-/// **Note:** diagrams loaded form file are always placed in the bottom of the doc section
+/// **Note:** `indlude_mmd!` syntax is only supported inside doc comments
 pub fn example_load_from_file() {}

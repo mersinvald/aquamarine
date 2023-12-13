@@ -22,7 +22,7 @@
 //!
 //! You can even add multiple diagrams!
 //!
-//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.3.3/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
 //!
 //! ### Dark-mode
 //!
@@ -51,10 +51,25 @@
 //! /// ```
 //! # fn example() {}
 //! ```
-//!
-//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.3.3/aquamarine_demo_crate/fn.example_with_styling.html)
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example_with_styling.html)
 //!
 //! To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
+//!
+//! ### Loading from a file
+//!
+//! When describing complex logic, a diagram can get quite big.
+//!
+//! To reduce clutter in your doc comments, you can load a diagram from file using the `include_mmd!` macro-like syntax.
+//!
+//! ```no_run
+//! /// Diagram #1
+//! /// include_mmd!("diagram_1.mmd")
+//! ///
+//! /// Diagram #2
+//! /// include_mmd!("diagram_2.mmd")
+//! # fn example() {}
+//! ```
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example_load_from_file.html)
 
 extern crate proc_macro;
 

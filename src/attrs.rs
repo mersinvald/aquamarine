@@ -1,12 +1,12 @@
+use include_dir::{include_dir, Dir};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, emit_call_site_warning};
 use quote::quote;
-use std::iter;
-use syn::{Attribute, Ident, MetaNameValue};
 use std::fs;
 use std::path::Path;
-use include_dir::{include_dir, Dir};
+use std::{iter, path::PathBuf};
+use syn::{Attribute, Ident, MetaNameValue};
 
 // embedded JS code being inserted as html script elmenets
 static MERMAID_JS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/doc/js/");
@@ -35,6 +35,8 @@ pub enum Attr {
     DiagramEntry(Ident, String),
     /// Diagram end token
     DiagramEnd(Ident),
+    /// Include Anchor
+    DiagramIncludeAnchor(Ident, PathBuf),
 }
 
 impl Attr {
@@ -45,20 +47,21 @@ impl Attr {
             Attr::DiagramStart(ident) => Some(ident),
             Attr::DiagramEntry(ident, _) => Some(ident),
             Attr::DiagramEnd(ident) => Some(ident),
+            Attr::DiagramIncludeAnchor(ident, _) => Some(ident),
         }
     }
 
     pub fn is_diagram_end(&self) -> bool {
         match self {
             Attr::DiagramEnd(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_diagram_start(&self) -> bool {
         match self {
             Attr::DiagramStart(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -80,27 +83,9 @@ impl From<Vec<Attribute>> for Attrs {
 impl quote::ToTokens for Attrs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mut attrs = self.0.iter();
-        let mut loaded_from_file = None;
         while let Some(attr) = attrs.next() {
             match attr {
-                Attr::Forward(attr) => {
-                    // check if filepath is supplied
-                    if attr.path().is_ident("path") {
-                        if let syn::Meta::List(ref ml) = attr.meta {
-                            for token in ml.tokens.to_token_stream().into_iter() {
-                                if let proc_macro2::TokenTree::Literal(value) = token {
-                                    let data =
-                                        std::fs::read_to_string(value.to_string().replace("\"", ""))
-                                            .expect("Unable to read mermaid file");
-                                    loaded_from_file = Some(generate_diagram_rustdoc(
-                                        vec![data.as_str()].into_iter(),
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    attr.to_tokens(tokens)
-                }
+                Attr::Forward(attr) => attr.to_tokens(tokens),
                 Attr::DocComment(_, comment) => tokens.extend(quote! {
                     #[doc = #comment]
                 }),
@@ -118,18 +103,17 @@ impl quote::ToTokens for Attrs {
                     emit_call_site_warning!("encountered an unexpected attribute that's going to be ignored, this is a bug! ({})", body);
                 }
                 Attr::DiagramEnd(_) => (),
+                Attr::DiagramIncludeAnchor(_, path) => {
+                    let data = std::fs::read_to_string(path).expect("Unable to read mermaid file");
+                    tokens.extend(generate_diagram_rustdoc(Some(data.as_str()).into_iter()))
+                }
             }
-        }
-
-        if let Some(diagram) = loaded_from_file {
-            tokens.extend(diagram)
         }
     }
 }
 
 fn place_mermaid_js() -> std::io::Result<()> {
-    let target_dir = std::env::var("CARGO_TARGET_DIR")
-        .unwrap_or("./target".to_string());
+    let target_dir = std::env::var("CARGO_TARGET_DIR").unwrap_or("./target".to_string());
     let docs_dir = Path::new(&target_dir).join("doc");
     // extract mermaid module iff rustdoc folder exists already
     if docs_dir.exists() {
@@ -210,16 +194,16 @@ const MERMAID_INIT_SCRIPT: &str = r#"
     }
 "#;
 
-fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item=&'a str>) -> TokenStream {
+fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item = &'a str>) -> TokenStream {
     let preamble = iter::once(r#"<div class="mermaid">"#);
     let postamble = iter::once("</div>");
 
-
-    let mermaid_js_init = format!(r#"<script type="module">{}</script>"#,
-                                  MERMAID_INIT_SCRIPT
-                                      .replace("{mermaidModuleFile}", MERMAID_JS_LOCAL)
-                                      .replace("{fallbackRemoteUrl}", MERMAID_JS_CDN));
-
+    let mermaid_js_init = format!(
+        r#"<script type="module">{}</script>"#,
+        MERMAID_INIT_SCRIPT
+            .replace("{mermaidModuleFile}", MERMAID_JS_LOCAL)
+            .replace("{fallbackRemoteUrl}", MERMAID_JS_CDN)
+    );
 
     let body = preamble.chain(parts).chain(postamble).join("\n");
 
@@ -235,9 +219,9 @@ fn generate_diagram_rustdoc<'a>(parts: impl Iterator<Item=&'a str>) -> TokenStre
 
 impl Attrs {
     pub fn push_attrs(&mut self, attrs: Vec<Attribute>) {
-        use syn::Lit::*;
         use syn::Expr;
         use syn::ExprLit;
+        use syn::Lit::*;
 
         let mut current_location = Location::OutsideDiagram;
         let mut diagram_start_ident = None;
@@ -245,8 +229,10 @@ impl Attrs {
         for attr in attrs {
             match attr.meta.require_name_value() {
                 Ok(MetaNameValue {
-                                 value: Expr::Lit(ExprLit {lit: Str(s), .. }), path, ..
-                             }) if path.is_ident("doc") => {
+                    value: Expr::Lit(ExprLit { lit: Str(s), .. }),
+                    path,
+                    ..
+                }) if path.is_ident("doc") => {
                     let ident = path.get_ident().unwrap();
                     for attr in split_attr_body(ident, &s.value(), &mut current_location) {
                         if attr.is_diagram_start() {
@@ -281,7 +267,7 @@ impl Location {
     fn is_inside(self) -> bool {
         match self {
             Location::InsideDiagram => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -306,7 +292,7 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
         buffer: Vec<&'a str>,
     }
 
-    let mut ctx = Default::default();
+    let mut ctx: Ctx<'_> = Default::default();
 
     let flush_buffer_as_doc_comment = |ctx: &mut Ctx| {
         if !ctx.buffer.is_empty() {
@@ -326,6 +312,16 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
 
     while let Some(token) = tokens.next() {
         match (*loc, token, tokens.peek()) {
+            // Detect include anchor
+            (OutsideDiagram, token, _) if token.starts_with("include_mmd!") => {
+                // cleanup
+                let path = token.trim_start_matches("include_mmd!").trim();
+                let path = path.trim_start_matches('(').trim_end_matches(')');
+                let path = path.trim_matches('"');
+                let path = PathBuf::from(path);
+                ctx.attrs
+                    .push(Attr::DiagramIncludeAnchor(ident.clone(), path));
+            }
             // Flush the buffer, then open the diagram code block
             (OutsideDiagram, TICKS, Some(&MERMAID)) => {
                 tokens.next();
@@ -354,7 +350,7 @@ fn split_attr_body(ident: &Ident, input: &str, loc: &mut Location) -> Vec<Attr> 
     ctx.attrs
 }
 
-fn tokenize_doc_str(input: &str) -> impl Iterator<Item=&str> {
+fn tokenize_doc_str(input: &str) -> impl Iterator<Item = &str> {
     const TICKS: &str = "```";
     split_inclusive(input, TICKS).flat_map(|token| {
         // not str::split_whitespace because we don't wanna filter-out the whitespace tokens
@@ -363,7 +359,7 @@ fn tokenize_doc_str(input: &str) -> impl Iterator<Item=&str> {
 }
 
 // TODO: remove once str::split_inclusive is stable
-fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<Item=&'a str> {
+fn split_inclusive<'a, 'b: 'a>(input: &'a str, delim: &'b str) -> impl Iterator<Item = &'a str> {
     let mut tokens = vec![];
     let mut prev = 0;
 
@@ -404,6 +400,9 @@ mod tests {
                 Attr::DiagramStart(..) => f.write_str("Attr::DiagramStart"),
                 Attr::DiagramEntry(_, body) => write!(f, "Attr::DiagramEntry({:?})", body),
                 Attr::DiagramEnd(..) => f.write_str("Attr::DiagramEnd"),
+                Attr::DiagramIncludeAnchor(_, path) => {
+                    write!(f, "Attr::DiagramIncludeAnchor({:?})", path)
+                }
             }
         }
     }
@@ -428,7 +427,7 @@ mod tests {
     fn temp_split_inclusive() {
         let src = "```";
         let out: Vec<_> = split_inclusive(src, "```").collect();
-        assert_eq!(&out, &["```", ]);
+        assert_eq!(&out, &["```",]);
 
         let src = "```abcd```";
         let out: Vec<_> = split_inclusive(src, "```").collect();
@@ -436,7 +435,7 @@ mod tests {
 
         let src = "left```abcd```right";
         let out: Vec<_> = split_inclusive(src, "```").collect();
-        assert_eq!(&out, &["left", "```", "abcd", "```", "right", ]);
+        assert_eq!(&out, &["left", "```", "abcd", "```", "right",]);
     }
 
     mod split_attr_body_tests {

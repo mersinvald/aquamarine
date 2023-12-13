@@ -68,24 +68,16 @@ To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/
 
 ### Separating diagrams from code
 
-A diagram can be loaded from file to reduce clutter in the documentation comments.
+A diagram, or multiple, can be loaded from file to reduce clutter in the documentation comments.
 
-Such diagram will always be placed under the rest of the document section. 
-Reading diagrams from file can be combined with placing them into the doc-comment, to get multiple diagrams describing a single entity, however only one can be placed inside the file. (FIXME).
 
 ```rust
-#[cfg_attr(doc, aquamarine::aquamarine, path = "./diagram.mermaid")]
+#[cfg_attr(doc, aquamarine::aquamarine)]
+/// My diagram #1
+/// include_mmd!("diagram1.mmd")
+/// My diagram #2
+/// include_mmd!("diagram2.mmd")
 pub fn example_foad_from_file() {}
-```
-
-```bash
-# diagram.mermaid
-graph LR
-    s([Source]) --> a[[aquamarine]]
-    r[[rustdoc]] --> f([Docs w/ Mermaid!])
-    subgraph rustc[Rust Compiler]
-    a -. load diagram.mermaid .-> r
-    end
 ```
 
 ### In the wild
