@@ -10,7 +10,7 @@
 ///     s([Source]) --> a[[aquamarine]]
 ///     r[[rustdoc]] --> f([Docs w/ Mermaid!])
 ///     subgraph rustc[Rust Compiler]
-///     a -. inject mermaid.js .-> r
+///     a -. "inject mermaid.js" .-> r
 ///     end
 /// ```
 ///
@@ -46,4 +46,4 @@ pub fn example_with_styling() {}
 /// Reduce clutter in your doc comments, when a diagram is big enough
 ///
 /// **Note:** diagrams loaded form file are always placed in the bottom of the doc section
-pub fn example_foad_from_file() {}
+pub fn example_load_from_file() {}
