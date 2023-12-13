@@ -80,6 +80,8 @@ A diagram, or multiple, can be loaded from file to reduce clutter in the documen
 pub fn example_foad_from_file() {}
 ```
 
+![import](resources/import.png)
+
 ### In the wild
 
 Crates that use `aquamarine` in their documentation
