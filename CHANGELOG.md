@@ -1,3 +1,20 @@
+<a name="v0.4.0"></a>
+### v0.4.0 (2023-12-13)
+
+#### Breaking Changes
+
+* `path` attribute is no longer supported for importing diagrams from external files
+
+#### Features
+
+*   `include_mmd!` macro-like syntax for embedding diagrams from files
+*   multiple diagrams can now be imported from filesystem per documented entity
+*   imported diagrams can now be placed freely at any place inside the doc comment
+
+#### Miscellaneous
+
+*   syn bumped to version 2 (PR #42 by [maurer](https://github.com/maurer)
+
 <a name="v0.3.1"></a>
 ### v0.3.1 (2023-04-17)
 
