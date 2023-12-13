@@ -1,6 +1,6 @@
 [package]
 name = "aquamarine-demo-crate"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Mike Lubinets <git@mkl.dev>"]
 description = "A demo crate for aquamarine -- the mermaid.js integration for rustdoc"
 keywords = ["proc_macro", "docs", "rustdoc", "mermaid", "diagram"]
