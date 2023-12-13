@@ -18,7 +18,7 @@ quote = "1"
 proc-macro2 = "1"
 proc-macro-error = "1"
 itertools = "0.10"
-syn = "2.0.1"
+syn = "2"
 include_dir = "0.7"
 [dev-dependencies]
 pretty_assertions = "1"
