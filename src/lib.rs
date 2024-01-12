@@ -22,7 +22,7 @@
 //!
 //! You can even add multiple diagrams!
 //!
-//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
+//! To see it in action, go to the [demo crate](https://docs.rs/aquamarine-demo-crate/0.5.0/aquamarine_demo_crate/fn.example.html) docs.rs page.
 //!
 //! ### Dark-mode
 //!
@@ -51,7 +51,7 @@
 //! /// ```
 //! # fn example() {}
 //! ```
-//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example_with_styling.html)
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.5.0/aquamarine_demo_crate/fn.example_with_styling.html)
 //!
 //! To learn more, see the [Theming Section](https://mermaid-js.github.io/mermaid/#/theming) of the mermaid.js book
 //!
@@ -69,7 +69,7 @@
 //! /// include_mmd!("diagram_2.mmd")
 //! # fn example() {}
 //! ```
-//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.4.0/aquamarine_demo_crate/fn.example_load_from_file.html)
+//! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.5.0/aquamarine_demo_crate/fn.example_load_from_file.html)
 
 extern crate proc_macro;
 

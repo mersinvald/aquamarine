@@ -1,5 +1,14 @@
+<a name="v0.5.0"></a>
+### v0.5.0 (2024-01-12)
+
+#### Breaking Changes
+
+* include_mmd! now always uses CARGO_MANIFEST_DIR as root (PR #47 by [Rjected](https://github.com/Rjected))
+
+#### Miscellaneous
+
 <a name="v0.4.0"></a>
-### v0.4.0 (2023-12-13)
+### v0.4.0 (2023-12-13) YANKED
 
 #### Breaking Changes
 
