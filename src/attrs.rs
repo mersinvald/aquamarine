@@ -1,7 +1,8 @@
 use include_dir::{include_dir, Dir};
 use itertools::Itertools;
+use proc_macro::Span;
 use proc_macro2::TokenStream;
-use proc_macro_error::{abort, emit_call_site_warning};
+use proc_macro_error::{abort, emit_call_site_warning, emit_error};
 use quote::quote;
 use std::fs;
 use std::path::Path;
@@ -104,7 +105,25 @@ impl quote::ToTokens for Attrs {
                 }
                 Attr::DiagramEnd(_) => (),
                 Attr::DiagramIncludeAnchor(_, path) => {
-                    let data = std::fs::read_to_string(path).expect("Unable to read mermaid file");
+                    // get cargo manifest dir
+                    let manifest_dir =
+                        std::env::var("CARGO_MANIFEST_DIR").unwrap_or(".".to_string());
+
+                    // append path to cargo manifest dir using PathBuf
+                    let path = &PathBuf::new().join(manifest_dir).join(path);
+
+                    let data = match std::fs::read_to_string(path) {
+                        Ok(data) => data,
+                        Err(e) => {
+                            emit_error!(
+                                Span::call_site(),
+                                "failed to read mermaid file from path {:?}: {}",
+                                path,
+                                e,
+                            );
+                            continue;
+                        }
+                    };
                     tokens.extend(generate_diagram_rustdoc(Some(data.as_str()).into_iter()))
                 }
             }
