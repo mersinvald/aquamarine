@@ -67,9 +67,6 @@
 //! ///
 //! /// Diagram #2
 //! /// include_mmd!("diagram_2.mmd")
-//! ///
-//! /// Diagram #3
-//! /// include_mmd!("diagram_2.mmd")
 //! # fn example() {}
 //! ```
 //! [Demo on docs.rs](https://docs.rs/aquamarine-demo-crate/0.5.0/aquamarine_demo_crate/fn.example_load_from_file.html)
