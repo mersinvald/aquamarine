@@ -4,7 +4,7 @@
 /// A function showcasing aquamarine defaults
 ///
 /// With aquamarine it's possible to embed Mermaid diagrams into your Rust documentation using the code snippets
-/// 
+///
 /// ```mermaid
 /// graph LR
 ///     s([Source]) --> a[[aquamarine]]
@@ -28,8 +28,8 @@ pub fn example() {}
 /// %%{init: {
 ///     'theme': 'base',
 ///     'themeVariables': {
-///            'primaryColor': '#ffcccc', 
-///            'edgeLabelBackground':'#ccccff', 
+///            'primaryColor': '#ffcccc',
+///            'edgeLabelBackground':'#ccccff',
 ///            'tertiaryColor': '#fff0f0' }}}%%
 /// graph TD
 ///      A(Diagram needs to be drawn) --> B{Does it have 'init' annotation?}
@@ -42,14 +42,18 @@ pub fn example_with_styling() {}
 
 #[cfg_attr(doc, aquamarine::aquamarine)]
 /// A diagram can be loaded from a file as well!
-/// 
+///
 /// include_mmd!("diagram_0.mmd")
-/// 
+///
 /// Reduce clutter in your doc comments, when a diagram is big enough.
-/// 
+///
 /// You can include multiple diagrams in a single doc comment, using the macro-like syntax `include_mmd!("/path/to/diagram.mmd")`
-/// 
+///
 /// include_mmd!(diagram_1.mmd)
+///
+/// Diagrams up to Mermaid version 11.1 are currently supported
+///
+/// include_mmd!(diagram_2.mmd)
 ///
 /// **Note:** `indlude_mmd!` syntax is only supported inside doc comments
 pub fn example_load_from_file() {}

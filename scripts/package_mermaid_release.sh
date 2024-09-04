@@ -6,7 +6,7 @@
 # Usage: scripts/package_mermaid_release.sh doc/js https://cdn.jsdelivr.net/npm/mermaid@10/dist/ mermaid.esm.min.mjs
 
 PKG_DIR="${1:-./doc/js}"
-PKG_URL="${2:-https://cdn.jsdelivr.net/npm/mermaid@10.0.2/dist/}"
+PKG_URL="${2:-https://cdn.jsdelivr.net/npm/mermaid@11.1.0/dist/}"
 PKG_NAME="${3:-mermaid.esm.min.mjs}"
 
 DOWNLOAD_DIR="${PKG_DIR}.dl"
