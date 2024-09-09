@@ -9,7 +9,7 @@ use std::path::Path;
 use std::{iter, path::PathBuf};
 use syn::{Attribute, Ident, MetaNameValue};
 
-// embedded JS code being inserted as html script elmenets
+// embedded JS code being inserted as html script elements
 static MERMAID_JS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/doc/js/");
 
 // Note: relative path depends on sub-module the macro is invoked in:
