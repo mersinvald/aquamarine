@@ -16,7 +16,7 @@ proc-macro = true
 [dependencies]
 quote = "1"
 proc-macro2 = "1"
-proc-macro-error = { version = "1", default-features = false }
+proc-macro-error2 = { version = "2", default-features = false }
 itertools = "0.10"
 syn = "2"
 include_dir = "0.7"

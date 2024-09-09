@@ -2,7 +2,7 @@ use include_dir::{include_dir, Dir};
 use itertools::Itertools;
 use proc_macro::Span;
 use proc_macro2::TokenStream;
-use proc_macro_error::{abort, emit_call_site_warning, emit_error};
+use proc_macro_error2::{abort, emit_call_site_warning, emit_error};
 use quote::quote;
 use std::fs;
 use std::path::Path;
