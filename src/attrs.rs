@@ -16,7 +16,7 @@ static MERMAID_JS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/doc/js/");
 //  base=document.getElementById("rustdoc-vars").attributes["data-root-path"]
 const MERMAID_JS_LOCAL: &str = "static.files.mermaid/mermaid.esm.min.mjs";
 const MERMAID_JS_LOCAL_DIR: &str = "static.files.mermaid";
-const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@10/dist/mermaid.esm.min.mjs";
+const MERMAID_JS_CDN: &str = "https://unpkg.com/mermaid@11.1/dist/mermaid.esm.min.mjs";
 
 const UNEXPECTED_ATTR_ERROR: &str =
     "unexpected attribute inside a diagram definition: only #[doc] is allowed";
