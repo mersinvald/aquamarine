@@ -1,6 +1,6 @@
 [package]
 name = "aquamarine"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Mike Lubinets <git@mkl.dev>", "Frank Rehberger <frehberg@gmail.com>"]
 description = "A mermaid.js integration for rustdoc"
 keywords = ["proc_macro", "docs", "rustdoc", "mermaid", "diagram"]

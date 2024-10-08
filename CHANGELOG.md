@@ -1,3 +1,13 @@
+<a name="v0.6.0"></a>
+### v0.6.0 (2024-01-12)
+
+#### Breaking Changes
+
+* use proc-macro-error2 (PR #52 by [Benjamin Bouvier](https://github.com/bnjbvr))
+* updated mermaidjs to 11.1.0 (PR #51 by [Zach](https://github.com/zheylmun))
+
+Note: bundled mermaidjs wasn't updated, will fix in the next minor release
+
 <a name="v0.5.0"></a>
 ### v0.5.0 (2024-01-12)
 
