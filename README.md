@@ -1,5 +1,11 @@
 # Aquamarine
 
+> ## ⚠️ Unmaintained — looking for maintainers
+>
+> This project is no longer actively maintained. Issues and pull requests may go unanswered, and no updates or fixes are planned.
+>
+> Interested in taking over maintenance? Please open an issue to discuss.
+
 [![GitHub](https://img.shields.io/github/license/mersinvald/aquamarine)](LICENSE)
 [![crates.io](https://img.shields.io/crates/d/aquamarine)](https://crates.io/crates/aquamarine)
 [![docs.rs](https://docs.rs/aquamarine/badge.svg)](https://docs.rs/aquamarine)
